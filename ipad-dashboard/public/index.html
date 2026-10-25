@@ -19,11 +19,6 @@
   </head>
   <body>
     <div id="screen">
-      <header id="ticker" class="ticker" hidden>
-        <div id="market" class="market"></div>
-        <button id="net" class="net" type="button" hidden></button>
-      </header>
-
       <main id="app">
         <section class="card clock">
           <div class="time">
@@ -50,13 +45,31 @@
             <div class="placeholder">Haberler yükleniyor…</div>
           </div>
         </section>
+
+        <section class="card matches" id="matchesCard">
+          <header class="news-head">
+            <span class="card-title">Maçlar · bu hafta</span>
+            <span id="mdots" class="dots"></span>
+          </header>
+          <div id="matchList" class="news-list">
+            <div class="placeholder small">Maçlar yükleniyor…</div>
+          </div>
+        </section>
       </main>
+
+      <header id="ticker" class="ticker" hidden>
+        <div id="market" class="market"></div>
+        <button id="net" class="net" type="button" hidden></button>
+      </header>
     </div>
 
     <button id="fs" class="corner fs" hidden aria-label="Tam ekran">⛶</button>
     <button id="gear" class="corner gear" aria-label="Ayarlar">⚙︎</button>
     <div id="panel" class="panel" hidden>
       <div id="panelCard" class="panel-card"></div>
+    </div>
+    <div id="story" class="panel" hidden>
+      <div id="storyCard" class="panel-card story"></div>
     </div>
     <script src="app.js"></script>
   </body>

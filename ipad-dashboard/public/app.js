@@ -12,9 +12,10 @@
     weatherRefreshMinutes: 15,
     newsRefreshMinutes: 15,
     marketRefreshMinutes: 5,
+    newsMaxAgeHours: 6,
     marketEnabled: true,
     matchesEnabled: true,
-    show: { market: true, net: true, forecast: true, news: true },
+    show: { market: true, net: true, forecast: true, news: true, matches: true },
     night: { enabled: false, from: 23, to: 7 }
   };
 
@@ -275,10 +276,8 @@
     }, delay);
   }
 
-  // ---- haberler, kategoriler ve maclar ---------------------------------------------
+  // ---- haberler ve kategoriler ---------------------------------------------------
   var categories = [];
-  var matchData = null;
-  var matchSig = '';
   var newsState = 'loading'; // loading | ok | error
   var newsUpdated = null;
   var newsStale = false;
@@ -287,11 +286,15 @@
   var pageTimer = null;
 
   function catOn(c) {
-    if (c.type === 'matches' && server.matchesEnabled === false) return false;
     return prefs.cats[c.name] != null ? !!prefs.cats[c.name] : c.enabled !== false;
   }
+  // Sunucu zaten son N saati suzer; iPad sunucuya ulasamazken eski veri de N saati gecmesin diye burada da suzulur.
   function catItems(c) {
-    return c.type === 'matches' ? (matchData ? matchData.matches : []) : c.items;
+    var maxAge = (server.newsMaxAgeHours || 0) * 3600000;
+    if (!maxAge) return c.items;
+    return c.items.filter(function (it) {
+      return !it.ts || Date.now() - it.ts <= maxAge;
+    });
   }
   function visibleCats() {
     return categories.filter(function (c) {
@@ -312,17 +315,11 @@
     return Math.floor(m / 1440) + ' gün önce';
   }
 
-  function dayLabel(ts) {
-    var d = new Date(ts);
-    var t = new Date();
-    if (d.toDateString() === t.toDateString()) return 'Bugün';
-    var tomorrow = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
-    if (d.toDateString() === tomorrow.toDateString()) return 'Yarın';
-    return shortDayFmt.format(d);
-  }
-
   function newsRow(it) {
-    var item = el('div', 'item');
+    var item = el('div', 'item tap');
+    item.addEventListener('click', function () {
+      openStory(it);
+    });
     var meta = el('div', 'item-meta');
     meta.appendChild(el('b', null, it.source));
     var t = ago(it.ts);
@@ -332,40 +329,12 @@
     return item;
   }
 
-  function matchRow(m) {
-    var row = el('div', 'item match');
-    var when = el('div', 'm-when');
-    var d = new Date(m.ts);
-    when.appendChild(el('div', 'm-day', dayLabel(m.ts)));
-    when.appendChild(el('div', 'm-time', pad(d.getHours()) + ':' + pad(d.getMinutes())));
-    row.appendChild(when);
-
-    var teams = el('div', 'm-teams');
-    teams.appendChild(el('div', m.homeTracked ? 'm-team mine' : 'm-team', m.home));
-    teams.appendChild(el('div', m.awayTracked ? 'm-team mine' : 'm-team', m.away));
-    teams.appendChild(el('div', 'm-league', m.league));
-    row.appendChild(teams);
-
-    var res = el('div', 'm-res');
-    if ((m.state === 'in' || m.state === 'post') && m.homeScore != null && m.awayScore != null) {
-      var score = el('div', 'm-score');
-      score.appendChild(el('div', null, m.homeScore));
-      score.appendChild(el('div', null, m.awayScore));
-      res.appendChild(score);
-    }
-    var badge = null;
-    if (m.state === 'in') badge = '● Oynanıyor' + (m.minute ? ' ' + m.minute : '');
-    else if (m.state === 'post') badge = 'Maç sonu';
-    else if (m.state === 'off') badge = m.note || 'Ertelendi';
-    if (badge) res.appendChild(el('div', 'm-badge ' + m.state, badge));
-    row.appendChild(res);
-    return row;
-  }
-
-  function pageSize() {
-    var list = $('news');
+  function listSize(list, rowRem, min, max) {
     var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    return Math.max(2, Math.min(8, Math.floor(list.clientHeight / (8.4 * rem))));
+    return Math.max(min, Math.min(max, Math.floor(list.clientHeight / (rowRem * rem))));
+  }
+  function pageSize() {
+    return listSize($('news'), 8.4, 1, 8);
   }
 
   function drawNews() {
@@ -375,6 +344,7 @@
       $('chips').textContent = '';
       $('dots').textContent = '';
       list.textContent = '';
+      list.style.setProperty('--rows', 1);
       list.appendChild(el('div', 'placeholder', 'Haberlere ulaşılamıyor, tekrar denenecek…'));
       return;
     }
@@ -413,7 +383,7 @@
     list.textContent = '';
     list.style.setProperty('--rows', size);
     items.slice(page * size, page * size + size).forEach(function (it) {
-      list.appendChild(cur.type === 'matches' ? matchRow(it) : newsRow(it));
+      list.appendChild(newsRow(it));
     });
 
     var dots = $('dots');
@@ -458,16 +428,11 @@
     }, 400);
   }
 
-  function restartTimer() {
-    clearInterval(pageTimer);
-    pageTimer = setInterval(nextPage, server.pageSeconds * 1000);
-  }
-
   function selectCat(name) {
     activeName = name;
     page = 0;
     drawNews();
-    restartTimer();
+    restartTimers();
   }
 
   function loadNews() {
@@ -488,24 +453,184 @@
       });
   }
 
+  // ---- maclar: haberlerin altinda sabit kart -------------------------------------
+  var matchData = null;
+  var matchError = false;
+  var matchSig = '';
+  var matchPage = 0;
+  var matchFocus = null; // yeni veri gelince canli (yoksa siradaki) macin sirasi: sayfa ona gore secilir
+  var matchTimer = null;
+  var monthFmt = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short' });
+
+  function dayLabel(ts) {
+    var d = new Date(ts);
+    var t = new Date();
+    if (d.toDateString() === t.toDateString()) return 'Bugün';
+    var tomorrow = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+    if (d.toDateString() === tomorrow.toDateString()) return 'Yarın';
+    return Math.abs(d - t) / 86400000 >= 6 ? monthFmt.format(d) : shortDayFmt.format(d);
+  }
+
+  function matchRow(m) {
+    var row = el('div', 'item match');
+    var when = el('div', 'm-when');
+    var d = new Date(m.ts);
+    when.appendChild(el('div', 'm-day', dayLabel(m.ts)));
+    when.appendChild(el('div', 'm-time', pad(d.getHours()) + ':' + pad(d.getMinutes())));
+    row.appendChild(when);
+
+    var teams = el('div', 'm-teams');
+    teams.appendChild(el('div', m.homeTracked ? 'm-team mine' : 'm-team', m.home));
+    teams.appendChild(el('div', m.awayTracked ? 'm-team mine' : 'm-team', m.away));
+    row.appendChild(teams);
+
+    var res = el('div', 'm-res');
+    if ((m.state === 'in' || m.state === 'post') && m.homeScore != null && m.awayScore != null) {
+      var score = el('div', 'm-score');
+      score.appendChild(el('div', null, m.homeScore));
+      score.appendChild(el('div', null, m.awayScore));
+      res.appendChild(score);
+    }
+    var badge = null;
+    if (m.state === 'in') badge = '● Oynanıyor' + (m.minute ? ' ' + m.minute : '');
+    else if (m.state === 'post') badge = 'Maç sonu';
+    else if (m.state === 'off') badge = m.note || 'Ertelendi';
+    if (badge) res.appendChild(el('div', 'm-badge ' + m.state, badge));
+    row.appendChild(res);
+    return row;
+  }
+
+  function matchesVisible() {
+    return featureOn('matches') && server.matchesEnabled !== false;
+  }
+
+  function drawMatches() {
+    if (!matchesVisible()) return;
+    var list = $('matchList');
+    var dots = $('mdots');
+    list.textContent = '';
+    dots.textContent = '';
+    var note = null;
+    if (!matchData) note = matchError ? 'Maç verisi alınamadı, tekrar denenecek…' : 'Maçlar yükleniyor…';
+    else if (!matchData.matches.length) note = 'Bu hafta takip edilen takımların maçı görünmüyor';
+    if (note) {
+      list.style.setProperty('--rows', 1);
+      list.appendChild(el('div', 'placeholder small', note));
+      return;
+    }
+    var items = matchData.matches;
+    var size = listSize(list, 5.4, 1, 6);
+    var pages = Math.max(1, Math.ceil(items.length / size));
+    if (matchFocus != null) {
+      matchPage = Math.floor(matchFocus / size);
+      matchFocus = null;
+    }
+    matchPage = matchPage % pages;
+    list.style.setProperty('--rows', size);
+    items.slice(matchPage * size, matchPage * size + size).forEach(function (m) {
+      list.appendChild(matchRow(m));
+    });
+    if (pages > 1) for (var i = 0; i < Math.min(pages, 8); i++) dots.appendChild(el('i', i === matchPage % 8 ? 'on' : ''));
+  }
+
+  function nextMatchPage() {
+    if (!matchesVisible() || !matchData || !matchData.matches.length) return;
+    var list = $('matchList');
+    var pages = Math.ceil(matchData.matches.length / listSize(list, 5.4, 1, 6));
+    if (pages <= 1) return;
+    list.classList.add('fade');
+    setTimeout(function () {
+      matchPage++;
+      drawMatches();
+      list.classList.remove('fade');
+    }, 400);
+  }
+
+  // Canli mac varsa onun, yoksa siradaki macin sirasi (hepsi bittiyse en sonuncu).
+  function focusIndex(items) {
+    var now = Date.now();
+    var idx = -1;
+    items.forEach(function (m, i) {
+      if (idx < 0 && m.state === 'in') idx = i;
+    });
+    items.forEach(function (m, i) {
+      if (idx < 0 && m.state === 'pre' && m.ts >= now - 3600000) idx = i;
+    });
+    return idx < 0 ? Math.max(0, items.length - 1) : idx;
+  }
+
   function loadMatches() {
     if (server.matchesEnabled === false) return;
     getJSON('/api/matches')
       .then(function (m) {
         matchData = m;
+        matchError = false;
         var sig = JSON.stringify(m.matches);
         if (sig !== matchSig) {
           matchSig = sig;
-          applyAll();
+          matchFocus = focusIndex(m.matches);
+          drawMatches();
         }
         setTimeout(loadMatches, 60000);
       })
       .catch(function () {
+        matchError = true;
+        if (!matchData) drawMatches();
         setTimeout(loadMatches, 120000);
       });
   }
 
-  // ---- yerlesim: acik/kapali bolumlere gore ----------------------------------------
+  function restartTimers() {
+    clearInterval(pageTimer);
+    clearInterval(matchTimer);
+    pageTimer = setInterval(nextPage, server.pageSeconds * 1000);
+    matchTimer = setInterval(nextMatchPage, server.pageSeconds * 1000);
+  }
+
+  // ---- yerlesim: acik/kapali kartlara gore ızgarayi kur ------------------------------
+  // Yatay: solda saat+hava, sagda haberler ustte maclar altta, en altta 7 gun.
+  // Dikey: ustte saat+hava, sonra 7 gun, sonra haberler ve maclar alt alta.
+  function gridFor(portrait, news, matches, forecast) {
+    var right = [];
+    if (news) right.push('news');
+    if (matches) right.push('matches');
+    var cols;
+    var rows = [];
+    var areas = [];
+    if (!portrait) {
+      if (!right.length) {
+        cols = '1fr 1fr';
+        rows.push('minmax(0, 1fr)');
+        areas.push("'clock now'");
+      } else if (right.length === 1) {
+        cols = '1fr 1.4fr';
+        rows.push('minmax(0, 1fr)', 'minmax(0, 1fr)');
+        areas.push("'clock " + right[0] + "'", "'now " + right[0] + "'");
+      } else {
+        cols = '1fr 1.4fr';
+        rows.push('minmax(0, 1.1fr)', 'minmax(0, 1fr)');
+        areas.push("'clock news'", "'now matches'");
+      }
+      if (forecast) {
+        rows.push('auto');
+        areas.push("'forecast forecast'");
+      }
+    } else {
+      cols = '1.15fr 0.85fr';
+      rows.push(right.length ? 'auto' : 'minmax(0, 1fr)');
+      areas.push("'clock now'");
+      if (forecast) {
+        rows.push('auto');
+        areas.push("'forecast forecast'");
+      }
+      right.forEach(function (name) {
+        rows.push(name === 'news' && right.length === 2 ? 'minmax(0, 1.15fr)' : 'minmax(0, 1fr)');
+        areas.push("'" + name + ' ' + name + "'");
+      });
+    }
+    return { cols: cols, rows: rows.join(' '), areas: areas.join(' ') };
+  }
+
   function applyLayout() {
     var showMarket = featureOn('market') && server.marketEnabled !== false && !!marketData;
     var showNet = featureOn('net') && !!netState && netState.enabled !== false;
@@ -513,14 +638,66 @@
     $('net').hidden = !showNet;
     $('ticker').hidden = !(showMarket || showNet);
     var news = newsVisible();
+    var matches = matchesVisible();
     var forecast = featureOn('forecast');
     $('newsCard').hidden = !news;
+    $('matchesCard').hidden = !matches;
     $('forecast').hidden = !forecast;
-    $('app').className = (news ? '' : 'no-news ') + (forecast ? '' : 'no-forecast');
+    var g = gridFor(window.matchMedia('(orientation: portrait)').matches, news, matches, forecast);
+    var app = $('app');
+    app.style.gridTemplateColumns = g.cols;
+    app.style.gridTemplateRows = g.rows;
+    app.style.gridTemplateAreas = g.areas;
   }
   function applyAll() {
     applyLayout();
     drawNews();
+    drawMatches();
+  }
+
+  // ---- haber penceresi: habere dokununca baslik, kaynak, saat ve ozet ---------------
+  var storyTimer = null;
+  function closeStory() {
+    clearTimeout(storyTimer);
+    $('story').hidden = true;
+  }
+  function touchStory() {
+    clearTimeout(storyTimer);
+    storyTimer = setTimeout(closeStory, 120000);
+  }
+  function openStory(it) {
+    var card = $('storyCard');
+    card.textContent = '';
+    var meta = el('div', 'story-meta');
+    meta.appendChild(el('b', null, it.source));
+    if (it.ts) {
+      var d = new Date(it.ts);
+      meta.appendChild(document.createTextNode('  ·  ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + '  ·  ' + ago(it.ts)));
+    }
+    card.appendChild(meta);
+    card.appendChild(el('div', 'story-title', it.title));
+    var hasLink = typeof it.link === 'string' && /^https?:\/\//i.test(it.link);
+    card.appendChild(
+      it.summary
+        ? el('div', 'story-body', it.summary)
+        : el('div', 'story-body muted', hasLink ? 'Bu haber için özet yok. Aşağıdaki düğmeyle haberin kendisine gidebilirsiniz.' : 'Bu haber için ayrıntı yok.')
+    );
+    var actions = el('div', 'panel-actions');
+    if (hasLink) {
+      var open = el('a', 'btn', 'Haberin tamamı ↗');
+      open.href = it.link;
+      open.target = '_blank';
+      open.rel = 'noopener noreferrer';
+      actions.appendChild(open);
+    }
+    var close = el('button', 'btn primary', 'Kapat');
+    close.type = 'button';
+    close.addEventListener('click', closeStory);
+    actions.appendChild(close);
+    card.appendChild(actions);
+    $('story').hidden = false;
+    card.scrollTop = 0;
+    touchStory();
   }
 
   // ---- ayar paneli ---------------------------------------------------------------
@@ -581,15 +758,21 @@
       })
     );
     card.appendChild(
-      switchRow('Haberler ve maçlar', null, featureOn('news'), function (v) {
+      switchRow('Haberler', 'Kategorileri aşağıdan seçin', featureOn('news'), function (v) {
         prefs.news = v;
         changed();
       })
     );
+    if (server.matchesEnabled !== false) {
+      card.appendChild(
+        switchRow('Maçlar', 'Galatasaray, Fenerbahçe, Beşiktaş', featureOn('matches'), function (v) {
+          prefs.matches = v;
+          changed();
+        })
+      );
+    }
 
-    var shown = categories.filter(function (c) {
-      return c.type !== 'matches' || server.matchesEnabled !== false;
-    });
+    var shown = categories;
     if (shown.length) {
       card.appendChild(el('div', 'panel-group', 'Haber kategorileri'));
       var grid = el('div', 'cat-grid');
@@ -658,6 +841,10 @@
   // ---- baslat ----------------------------------------------------------------
   window.addEventListener('resize', applyAll);
   $('chips').addEventListener('scroll', chipsFade);
+  $('story').addEventListener('click', function (e) {
+    if (e.target === $('story')) closeStory();
+  });
+  $('storyCard').addEventListener('pointerdown', touchStory);
   $('gear').addEventListener('click', openPanel);
   $('panel').addEventListener('click', function (e) {
     if (e.target === $('panel')) closePanel();
@@ -707,6 +894,6 @@
       loadMarket();
       loadMatches();
       pollNet(0);
-      restartTimer();
+      restartTimers();
     });
 })();

@@ -7,12 +7,14 @@
   "newsRefreshMinutes": 15,
   "newsPerSource": 6,
   "itemsPerCategory": 10,
+  "newsMaxAgeHours": 6,
   "pageSeconds": 15,
   "show": {
     "market": true,
     "net": true,
     "forecast": true,
-    "news": true
+    "news": true,
+    "matches": true
   },
   "night": {
     "enabled": false,
@@ -34,6 +36,7 @@
   "matches": {
     "enabled": true,
     "teams": ["Galatasaray", "Fenerbahçe", "Beşiktaş"],
+    "weeksAhead": 0,
     "liveRefreshMinutes": 1,
     "idleRefreshMinutes": 30,
     "leagues": [
@@ -45,60 +48,35 @@
     ]
   },
   "newsBundles": [
-    { "name": "Maçlar", "type": "matches" },
     {
       "name": "Gündem",
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/gundem_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=guncel" },
-        { "name": "NTV", "url": "https://www.ntv.com.tr/son-dakika.rss" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/gundem" }]
     },
     {
       "name": "Ekonomi",
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/ekonomi_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=ekonomi" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/ekonomi" }]
     },
     {
       "name": "Spor",
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/spor_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=spor" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/spor" }]
     },
     {
       "name": "Dünya",
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/dunya_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=dunya" },
-        { "name": "BBC Türkçe", "url": "https://feeds.bbci.co.uk/turkce/rss.xml" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/dunya" }]
     },
     {
       "name": "Teknoloji",
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/bilim_teknoloji_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji" },
-        { "name": "ShiftDelete", "url": "https://shiftdelete.net/feed" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/teknoloji" }]
     },
     {
       "name": "Sağlık",
       "enabled": false,
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/saglik_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=saglik" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/saglik" }]
     },
     {
-      "name": "Kültür-Sanat",
+      "name": "Magazin",
       "enabled": false,
-      "feeds": [
-        { "name": "TRT Haber", "url": "https://www.trthaber.com/kultur_sanat_articles.rss" },
-        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=kultur" }
-      ]
+      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/magazin" }]
     }
   ]
 }

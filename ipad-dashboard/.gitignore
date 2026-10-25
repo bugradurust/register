@@ -3,3 +3,5 @@
 
 # Kisisel ayarlar (ileride sifre de olabilir): depoya girmesin, guncellemede ezilmesin.
 config.json
+teshis-raporu.txt
+teshis-sayfa.html

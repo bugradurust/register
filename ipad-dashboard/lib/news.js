@@ -1,49 +1,41 @@
-// Haberler: her kategori (paket) birden cok RSS kaynagini birlestirir.
+// Haberler: her kategori (paket) bir ya da birkac kaynagi birlestirir. Kaynak bir RSS adresi
+// ya da RSS'i olmayan bir haber sayfasi (ornegin bundle.app/tr/gundem) olabilir.
 import { config } from './config.js';
-import { cached, fetchText, stateLogger } from './util.js';
+import { BROWSER_UA, cached, fetchText, stateLogger } from './util.js';
+import { parseFeed } from './rss.js';
+import { extractItems } from './pagefeed.js';
 
-const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
-const decodeEntities = (s) =>
-  s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
-    if (e[0] === '#') {
-      const code = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : m;
-    }
-    return ENTITIES[e.toLowerCase()] ?? m;
-  });
-
-function clean(s) {
-  s = s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]*>/g, ' ');
-  return decodeEntities(s).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function tagText(block, name) {
-  const m = new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i').exec(block);
-  return m ? clean(m[1]) : '';
-}
-
-export function parseFeed(xml, source) {
-  const blocks = xml.match(/<(item|entry)[\s>][\s\S]*?<\/\1>/gi) || [];
-  const now = Date.now();
-  const items = [];
-  for (const block of blocks) {
-    const title = tagText(block, 'title');
-    if (!title) continue;
-    const date = tagText(block, 'pubDate') || tagText(block, 'dc:date') || tagText(block, 'published') || tagText(block, 'updated');
-    const ts = Date.parse(date);
-    items.push({ title, source, ts: Number.isFinite(ts) ? Math.min(ts, now) : 0 });
-  }
-  return items;
-}
+export { parseFeed };
 
 const note = stateLogger();
+const PAGE_HEADERS = {
+  'user-agent': BROWSER_UA,
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'accept-language': 'tr-TR,tr;q=0.9,en;q=0.5'
+};
+const fetchPage = (url) => fetchText(url, { headers: PAGE_HEADERS });
 
 async function fetchFeed(bundle, feed) {
   const key = `${bundle} · ${feed.name}`;
   try {
-    const items = parseFeed(await fetchText(feed.url), feed.name);
-    if (!items.length) throw new Error('haber bulunamadi');
-    note(key, 'ok', `✓ ${key}: ${items.length} haber`);
+    const text = await fetchPage(feed.url);
+    const isFeed = /<(rss|feed|rdf:RDF)[\s>]/i.test(text.slice(0, 3000));
+    let all;
+    let via = 'RSS';
+    if (isFeed) all = parseFeed(text, feed.name, feed.url);
+    else ({ items: all, via } = await extractItems(text, feed.url, fetchPage));
+    if (!all.length) {
+      throw new Error(isFeed ? 'haber bulunamadi' : 'sayfada haber bulunamadi (teshis.bat ile sayfanin yapisini inceleyin)');
+    }
+    for (const it of all) it.source ||= feed.name;
+
+    // Yalniz son newsMaxAgeHours saatin haberleri. Hic tarihi okunamayan kaynakta suzulemez, oldugu gibi kalir.
+    const maxAge = (config.newsMaxAgeHours || 0) * 3600000;
+    const undated = all.every((i) => !i.ts);
+    const now = Date.now();
+    const items = !maxAge || undated ? all : all.filter((i) => i.ts && now - i.ts <= maxAge);
+    const detail = !maxAge ? '' : undated ? ' (tarih okunamadı, süzülmedi)' : `, son ${config.newsMaxAgeHours} saatte ${items.length}`;
+    note(key, 'ok', `✓ ${key}: ${all.length} haber (${via})${detail}`);
     return items.sort((a, b) => b.ts - a.ts).slice(0, config.newsPerSource);
   } catch (err) {
     note(key, err.message, `✗ ${key}: ${err.message} (${feed.url})`);
@@ -62,11 +54,8 @@ export const getNews = cached(config.newsRefreshMinutes * 60000, async () => {
   const categories = [];
   let rss = 0;
   for (const bundle of config.newsBundles) {
+    if (bundle.type === 'matches') continue; // eski surumden kalan satir: maclar artik ayri bir kart
     const base = { name: bundle.name, enabled: bundle.enabled !== false };
-    if (bundle.type === 'matches') {
-      categories.push({ ...base, type: 'matches', items: [] });
-      continue;
-    }
     rss++;
     const lists = await Promise.all((bundle.feeds || []).map((feed) => downloads.get(feed.url)));
     const seen = new Set();
@@ -80,7 +69,7 @@ export const getNews = cached(config.newsRefreshMinutes * 60000, async () => {
       .slice(0, config.itemsPerCategory);
     categories.push({ ...base, items });
   }
-  if (rss && categories.every((c) => c.type === 'matches' || !c.items.length)) {
+  if (rss && categories.every((c) => !c.items.length)) {
     throw new Error('hicbir haber kaynagina ulasilamadi');
   }
   return { updated: new Date().toISOString(), categories };

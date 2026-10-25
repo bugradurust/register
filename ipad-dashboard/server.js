@@ -44,6 +44,7 @@ const API = {
     pageSeconds: config.pageSeconds,
     weatherRefreshMinutes: config.weatherRefreshMinutes,
     newsRefreshMinutes: config.newsRefreshMinutes,
+    newsMaxAgeHours: config.newsMaxAgeHours,
     marketRefreshMinutes: config.market.refreshMinutes,
     marketEnabled: config.market.enabled,
     matchesEnabled: config.matches.enabled,
