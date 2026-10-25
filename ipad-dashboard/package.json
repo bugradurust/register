@@ -1,0 +1,13 @@
+{
+  "name": "ipad-pano",
+  "version": "1.0.0",
+  "private": true,
+  "description": "iPad icin tam ekran saat, 7 gunluk hava durumu ve canli haber panosu",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pano</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Pano" />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="format-detection" content="telephone=no" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icon-180.png" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main id="app">
+      <section class="card clock">
+        <div class="time"><span id="hh">--</span><span id="colon" class="colon">:</span><span id="mm">--</span><span id="ss" class="secs">--</span></div>
+        <div class="dateline"><span id="weekday" class="weekday"></span> <span id="date"></span></div>
+        <div id="sun" class="sun"></div>
+      </section>
+
+      <section class="card now" id="now">
+        <div class="placeholder">Hava durumu yükleniyor…</div>
+      </section>
+
+      <section class="card forecast" id="forecast"></section>
+
+      <section class="card news">
+        <header class="news-head">
+          <span class="news-title">Son Haberler</span>
+          <span id="dots" class="dots"></span>
+          <span id="status" class="status"></span>
+        </header>
+        <div id="news" class="news-list">
+          <div class="placeholder">Haberler yükleniyor…</div>
+        </div>
+      </section>
+    </main>
+
+    <button id="fs" class="fs" hidden aria-label="Tam ekran">⛶</button>
+    <script src="app.js"></script>
+  </body>
+</html>

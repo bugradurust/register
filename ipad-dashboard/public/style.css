@@ -1,0 +1,369 @@
+:root {
+  --bg1: #0b1020;
+  --bg2: #16213a;
+  --card: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.09);
+  --text: #eef2f8;
+  --muted: #8fa1bd;
+  --accent: #5ab0ff;
+  --warm: #ffb454;
+  --cool: #7cc4ff;
+  --ok: #4cd08a;
+  --warn: #ffb454;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iPad'de iki yonde de ayni yazi olcegi: 1rem ~ ekranin kisa kenarinin %1.3'u */
+html {
+  font-size: 1.3vmin;
+  -webkit-text-size-adjust: 100%;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg1);
+  color: var(--text);
+  font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+  overscroll-behavior: none;
+}
+
+body {
+  background: linear-gradient(160deg, var(--bg1), var(--bg2));
+  transition: filter 2s ease;
+}
+
+/* Gece (yatak odasi) modu: saf siyah zemin uzerinde yalniz loş saat. Dokununca 30 sn tum pano acilir. */
+body.night.peek {
+  filter: brightness(0.45);
+}
+body.night:not(.peek) {
+  background: #000;
+}
+body.night:not(.peek) .now,
+body.night:not(.peek) .forecast,
+body.night:not(.peek) .news,
+body.night:not(.peek) .fs {
+  display: none;
+}
+body.night:not(.peek) #app {
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'clock';
+}
+body.night:not(.peek) .clock {
+  background: none;
+  border: 0;
+  align-items: center;
+  text-align: center;
+}
+body.night:not(.peek) .time {
+  font-size: 26rem;
+  color: #8a4f1a;
+}
+body.night:not(.peek) .secs {
+  display: none;
+}
+body.night:not(.peek) .dateline,
+body.night:not(.peek) .weekday {
+  color: #4d3320;
+}
+body.night:not(.peek) .sun {
+  display: none;
+}
+
+#app {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: grid;
+  gap: 1.6rem;
+  padding: max(env(safe-area-inset-top), 2.2rem) max(env(safe-area-inset-right), 2.4rem)
+    max(env(safe-area-inset-bottom), 2.2rem) max(env(safe-area-inset-left), 2.4rem);
+  grid-template-columns: 1fr 1.4fr;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-areas:
+    'clock news'
+    'now news'
+    'forecast forecast';
+}
+
+@media (orientation: portrait) {
+  #app {
+    grid-template-columns: 1.15fr 0.85fr;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-areas:
+      'clock now'
+      'forecast forecast'
+      'news news';
+  }
+}
+
+.card {
+  min-width: 0;
+  min-height: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  padding: 1.6rem 2.2rem;
+}
+
+.placeholder {
+  color: var(--muted);
+  font-size: 2.4rem;
+  padding: 2rem 0;
+  text-align: center;
+}
+
+/* ---- saat ---- */
+.clock {
+  grid-area: clock;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.time {
+  font-size: 10rem;
+  line-height: 1;
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.colon {
+  display: inline-block;
+  padding: 0 0.04em;
+}
+.secs {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0.8rem 0 0 0.6rem;
+  font-size: 4rem;
+  line-height: 1;
+  font-weight: 300;
+  color: var(--accent);
+}
+.dateline {
+  margin-top: 1rem;
+  font-size: 2.6rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.weekday {
+  font-weight: 600;
+  color: var(--accent);
+}
+.sun {
+  margin-top: 0.8rem;
+  font-size: 2rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- su an ---- */
+.now {
+  grid-area: now;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.now-loc {
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.now-main {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+}
+.now-icon {
+  font-size: 8rem;
+  line-height: 1.1;
+}
+.now-temp {
+  font-size: 9rem;
+  line-height: 1.1;
+  font-weight: 200;
+}
+.now-desc {
+  font-size: 2.6rem;
+  font-weight: 600;
+}
+.now-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 1.8rem;
+  color: var(--muted);
+}
+.now-stats b {
+  display: block;
+  color: var(--text);
+  font-size: 2.4rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---- 7 gun ---- */
+.forecast {
+  grid-area: forecast;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.6rem;
+  padding: 1.4rem 1rem;
+}
+.day {
+  text-align: center;
+  border-right: 1px solid var(--line);
+  padding: 0 0.4rem;
+}
+.day:last-child {
+  border-right: 0;
+}
+.day-name {
+  font-size: 2.3rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+.day.today .day-name {
+  color: var(--warm);
+}
+.day-icon {
+  font-size: 4.4rem;
+  line-height: 1.25;
+}
+.day-max {
+  font-size: 2.8rem;
+  font-weight: 600;
+  color: var(--warm);
+}
+.day-min {
+  font-size: 2.2rem;
+  color: var(--cool);
+}
+.day-rain {
+  margin-top: 0.3rem;
+  font-size: 1.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ---- haberler ---- */
+.news {
+  grid-area: news;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1.2rem;
+}
+.news-head {
+  display: flex;
+  align-items: center;
+  gap: 1.6rem;
+  margin-bottom: 0.6rem;
+  font-size: 2rem;
+  color: var(--muted);
+}
+.news-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.dots {
+  display: flex;
+  gap: 0.6rem;
+  flex: 1;
+}
+.dots i {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+}
+.dots i.on {
+  background: var(--accent);
+}
+.status::before {
+  content: '';
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.8rem;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.status.stale::before {
+  background: var(--warn);
+}
+
+.news-list {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(var(--rows, 4), minmax(0, 1fr));
+  transition: opacity 0.4s ease;
+}
+.news-list.fade {
+  opacity: 0;
+}
+.item {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-top: 1px solid var(--line);
+}
+.item:first-child {
+  border-top: 0;
+}
+.item-meta {
+  font-size: 1.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.item-meta b {
+  color: var(--warm);
+  font-weight: 700;
+}
+.item-title {
+  font-size: 2.4rem;
+  line-height: 1.2;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+/* ---- tam ekran dugmesi (yalniz Safari sekmesinde gorunur) ---- */
+.fs {
+  position: fixed;
+  right: 0.8rem;
+  bottom: 0.4rem;
+  width: 4.4rem;
+  height: 4.4rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 2.8rem;
+  opacity: 0.45;
+}
+.fs[hidden] {
+  display: none;
+}
