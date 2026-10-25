@@ -50,33 +50,37 @@
   "newsBundles": [
     {
       "name": "Gündem",
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/gundem" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/gundem_articles.rss" }]
+    },
+    {
+      "name": "Son Dakika",
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/sondakika_articles.rss" }]
     },
     {
       "name": "Ekonomi",
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/ekonomi" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/ekonomi_articles.rss" }]
     },
     {
       "name": "Spor",
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/spor" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/spor_articles.rss" }]
     },
     {
       "name": "Dünya",
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/dunya" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/dunya_articles.rss" }]
     },
     {
       "name": "Teknoloji",
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/teknoloji" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/bilim_teknoloji_articles.rss" }]
     },
     {
       "name": "Sağlık",
       "enabled": false,
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/saglik" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/saglik_articles.rss" }]
     },
     {
-      "name": "Magazin",
+      "name": "Kültür-Sanat",
       "enabled": false,
-      "feeds": [{ "name": "Bundle", "url": "https://www.bundle.app/tr/magazin" }]
+      "feeds": [{ "name": "TRT Haber", "url": "https://www.trthaber.com/kultur_sanat_articles.rss" }]
     }
   ]
 }

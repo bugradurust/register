@@ -4,7 +4,7 @@ iPad'i tam ekran bir masaüstü bilgi ekranı yapar:
 
 - büyük **saat** (saniye akar), tarih, gün doğumu ve batımı
 - anlık **hava durumu** ve **7 günlük tahmin**
-- **kategorili haberler** (Gündem, Ekonomi, Spor, Dünya, Teknoloji…): yalnızca son 6 saatin haberleri, **habere dokununca özet penceresi**
+- **kategorili haberler** (Gündem, Son Dakika, Ekonomi, Spor, Dünya, Teknoloji…) tek kaynaktan, TRT Haber'den: yalnızca son 6 saatin haberleri, **habere dokununca özet penceresi**
 - haberlerin altında sabit **Maçlar** kartı: Galatasaray, Fenerbahçe, Beşiktaş'ın o haftaki maçları, oynanırken "Oynanıyor", bitince skor
 - en altta **dolar, euro, gram altın** ve küçük bir **internet hızı** göstergesi
 - ekrandaki **⚙ ayar düğmesiyle** her bölüm ve her haber kategorisi tek tek açılıp kapanır
@@ -42,7 +42,7 @@ Not: iPad sürekli şarjda kalırsa pil yıllar içinde şişebilir. Prizi akıl
 
 ## 3. Ekranda kullanım
 
-**Habere dokunun:** dönen haberlerden birine dokunursanız başlık, kaynak, saat ve haberin özeti bir pencerede açılır. Altındaki **Haberin tamamı** düğmesi haberin orijinal sayfasını açar. Pencere dokunmadan 2 dakika sonra kendiliğinden kapanır. Özet, kaynağın (RSS ya da Bundle sayfası) verdiği kadardır; haberin tam metni ancak kaynak onu da veriyorsa görünür.
+**Habere dokunun:** dönen haberlerden birine dokunursanız başlık, kaynak, saat ve haberin özeti bir pencerede açılır. Altındaki **Haberin tamamı** düğmesi haberin orijinal sayfasını açar. Pencere dokunmadan 2 dakika sonra kendiliğinden kapanır. Özet, TRT Haber'in akışta verdiği kadardır; haberin tam metni ancak kaynak onu da veriyorsa görünür.
 
 **Kategori adlarına dokunun** (haber kartının üstü): istediğiniz kategoriye geçersiniz.
 
@@ -57,9 +57,9 @@ Seçimler o iPad'in kendi hafızasında saklanır, PC'de bir dosya değiştirmen
 
 ## 4. Bölümler hakkında
 
-**Haberler.** Kaynak [Bundle](https://www.bundle.app/tr/gundem) kategori sayfalarıdır (Gündem, Ekonomi, Spor, Dünya, Teknoloji; Sağlık ve Magazin kapalı başlar). Sunucu bu sayfaları okur, **yalnızca son 6 saatin** haberlerini tutar ve 15 dakikada bir yeniler. Bundle'ın resmî bir API'si ya da RSS'i yoktur, bu yüzden sayfanın içindeki veri okunur; Bundle sayfa düzenini değiştirirse güncelleme gerekebilir. Kişisel kullanım dışında kullanmayın ve Bundle'ın kullanım şartlarına uyun.
+**Haberler.** Tek kaynak: [TRT Haber](https://www.trthaber.com/sitene_ekle.html). Her kategori (Gündem, Son Dakika, Ekonomi, Spor, Dünya, Teknoloji; Sağlık ve Kültür-Sanat kapalı başlar) TRT Haber'in kendi RSS akışından gelir. Sunucu bu akışları okur, **yalnızca son 6 saatin** haberlerini tutar ve 15 dakikada bir yeniler. Haber yoksa o kategori ekranda görünmez.
 
-Bir kategori `✗` gösteriyorsa ya da haber gelmiyorsa **`teshis.bat`** dosyasına çift tıklayın: Bundle sayfasını sizin PC'nizden açıp neyin okunabildiğini raporlar ve `teshis-raporu.txt` dosyasına yazar. Raporu (ve gerekirse `teshis-sayfa.html` dosyasını) göndermeniz sayfa yapısına göre düzeltme yapmaya yeter. Başka bir adresi denemek için: `teshis.bat https://www.bundle.app/tr/spor`
+Başka bir siteyi denemek isterseniz kategori listesinde adresi değiştirin (aşağıya bakın). Kaynak bir RSS adresi ya da RSS'i olmayan bir haber sayfası olabilir. Sayfa için **`teshis.bat`** dosyasına çift tıklayın: sayfayı sizin PC'nizden açıp neyin okunabildiğini raporlar ve `teshis-raporu.txt` dosyasına yazar. Başka adres denemek için: `teshis.bat https://ornek.com/haberler`
 
 **Maçlar.** Haberlerin altında sabit kart. Pazartesi–pazar haftasının maçları gösterilir (Süper Lig, Türkiye Kupası, Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi). Maç başlamadan önce gün ve saat, oynanırken skor ve "● Oynanıyor" (dakikasıyla), bitince skor ve "Maç sonu", ertelenirse "Ertelendi" yazar. Kart, canlı maçın (yoksa sıradaki maçın) bulunduğu sayfadan başlar; çok maç varsa sayfalar dönüşümlü gösterilir. **Hafta kendiliğinden yenilenir:** pazartesi 00:00'dan sonra pano yeni haftanın maçlarına geçer. Gelecek haftanın maçlarını da görmek için `config.json` içinde `"matches": { "weeksAhead": 1 }` yazın. Veri ESPN'in herkese açık skor servisinden gelir (gün gün sorgulanır; biten günler uzun, maç günü kısa süre saklanır, maç sırasında dakikada bir yenilenir). Resmî bir hizmet olmadığından biçimi değişebilir; o zaman kart "Maç verisi alınamadı" der ve `start.bat` penceresinde `✗ Maçlar` yazar. Tarayıcıdan `http://PC-ADRESİ:3000/api/matches` açarsanız hangi ligin çalıştığını görürsünüz.
 
@@ -97,17 +97,17 @@ Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
 | `matches` | `teams` (takip edilen takımlar), `weeksAhead`, `leagues`, `liveRefreshMinutes`, `idleRefreshMinutes`, kapatmak için `"enabled": false` |
 | `newsBundles` | Haber kategorileri ve kaynakları (aşağıya bakın) |
 
-**Kategori eklemek ya da değiştirmek:** `newsBundles` bir liste, kendi listeniz varsayılanın yerine geçer. Her kategori bir ad ve kaynak adresleri alır; `"enabled": false` kategoriyi varsayılan olarak kapalı başlatır (ayar panelinden açılır). Kaynak adresi bir **haber sayfası** ya da bir **RSS adresi** olabilir, sunucu hangisi olduğunu kendisi anlar. İstediğiniz kadar kaynak ekleyebilirsiniz, haberler birleştirilir:
+**Kategori eklemek ya da değiştirmek:** `newsBundles` bir liste, kendi listeniz varsayılanın yerine geçer. Her kategori bir ad ve kaynak adresleri alır; `"enabled": false` kategoriyi varsayılan olarak kapalı başlatır (ayar panelinden açılır). Kaynak adresi bir **haber sayfası** ya da bir **RSS adresi** olabilir, sunucu hangisi olduğunu kendisi anlar. Bir kategoriye birden çok kaynak eklerseniz haberler birleştirilir:
 
 ```json
 {
   "newsBundles": [
     { "name": "Gündem", "feeds": [
-      { "name": "Bundle", "url": "https://www.bundle.app/tr/gundem" },
       { "name": "TRT Haber", "url": "https://www.trthaber.com/gundem_articles.rss" }
     ] },
     { "name": "Spor", "feeds": [
-      { "name": "Bundle", "url": "https://www.bundle.app/tr/spor" }
+      { "name": "TRT Haber", "url": "https://www.trthaber.com/spor_articles.rss" },
+      { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=spor" }
     ] }
   ]
 }
@@ -122,7 +122,7 @@ Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
 - **iPad açılmıyor:** İkisi aynı Wi-Fi'de mi? Adresi `http://` ile ve IP'nin tamamını yazdınız mı? PC'de `http://localhost:3000` açılıyor mu? Açılıyorsa güvenlik duvarı kuralı eksiktir (`kurulum-yonetici.bat`) ya da Windows ağı "Genel" olarak işaretlidir: **Ayarlar → Ağ ve İnternet → Wi-Fi → ağınız → Özel ağ**.
 - **Alt şeritte "PC'ye ulaşılamıyor":** iPad sunucuya bağlanamıyor. PC açık mı, `start.bat` penceresi duruyor mu?
 - **Hava durumu "alınamadı":** PC internete çıkabiliyor mu? `city` adı doğru mu? Pencerede hata yazar.
-- **Bir haber kategorisi `✗` ya da boş:** `teshis.bat` çalıştırın (yukarıya bakın). Son 6 saatte haber yoksa kategori de gizlenir.
+- **Bir haber kategorisi `✗` ya da boş:** Pencerede hatanın nedeni ve adresi yazar. Son 6 saatte haber yoksa kategori gizlenir. RSS olmayan bir sayfa eklediyseniz `teshis.bat` çalıştırın.
 - **Maçlar kartı "alınamadı" diyor ya da boş:** Pencerede `✗ Maçlar` / `ℹ Maçlar` satırlarına bakın. `ℹ` kaynak çalışıyor ama bu hafta takımlarınızın maçı yok demektir.
 - **Piyasa şeridi görünmüyor:** Pencerede `✗ Piyasa` satırına bakın: iki kaynak da cevap vermiyor demektir.
 - **`config.json hatalı`:** Virgül, tırnak ya da süslü parantez hatası. Dosyayı JSON olarak kontrol edin.
@@ -141,4 +141,4 @@ Sunucuyu yönlendiricide dışarıya açmayın (port yönlendirme yapmayın). Ya
 
 `server.js` hava durumu, haber, piyasa, maç ve internet verilerini kendisi çeker, önbelleğe alır (`/api/weather`, `/api/news`, `/api/market`, `/api/matches`, `/api/net`) ve `public/` klasörünü sunar. Siteleri sunucu çektiği için iPad'in eski Safari'sinin sertifika ve CORS sorunlarıyla uğraşması gerekmez. Bir kaynak başarısız olursa 1 dakika sonra tekrar denenir; o arada son başarılı veri gösterilir ve haber kartındaki nokta sarı olur. iPad uygulamaya geri dönünce sayfa kendini yeniler, her gün 04:00'te de yenilenir.
 
-Hava durumu verisi: [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Maç verisi: ESPN. Haberler: Bundle ve eklediğiniz kaynaklar.
+Hava durumu verisi: [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Maç verisi: ESPN. Haberler: TRT Haber RSS akışları.
