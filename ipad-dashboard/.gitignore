@@ -1,2 +1,5 @@
 # Kok dizindeki "*.js" kurali bu klasordeki kodu da yok sayiyordu.
 !*.js
+
+# Kisisel ayarlar (ileride sifre de olabilir): depoya girmesin, guncellemede ezilmesin.
+config.json

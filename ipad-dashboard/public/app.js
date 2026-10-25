@@ -5,10 +5,16 @@
     return document.getElementById(id);
   };
   var startedAt = Date.now();
-  var settings = {
+
+  // Sunucudan gelen varsayilanlar (config.default.json / config.json).
+  var server = {
     pageSeconds: 15,
     weatherRefreshMinutes: 15,
     newsRefreshMinutes: 15,
+    marketRefreshMinutes: 5,
+    marketEnabled: true,
+    matchesEnabled: true,
+    show: { market: true, net: true, forecast: true, news: true },
     night: { enabled: false, from: 23, to: 7 }
   };
 
@@ -36,6 +42,35 @@
         clearTimeout(timer);
       });
   }
+  var numFmts = {};
+  function fmt(v, digits) {
+    var f = numFmts[digits] || (numFmts[digits] = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: digits, maximumFractionDigits: digits }));
+    return f.format(v);
+  }
+
+  // ---- ayarlar: bu iPad'e ozel, localStorage'da saklanir --------------------------
+  // Bos (null/tanimsiz) alan sunucudaki varsayilani kullanir.
+  var prefs = loadPrefs();
+  function loadPrefs() {
+    var p = {};
+    try {
+      p = JSON.parse(localStorage.getItem('pano.prefs') || '{}') || {};
+    } catch (e) {}
+    if (!p.cats || typeof p.cats !== 'object') p.cats = {};
+    return p;
+  }
+  function savePrefs() {
+    try {
+      localStorage.setItem('pano.prefs', JSON.stringify(prefs));
+    } catch (e) {}
+  }
+  function featureOn(name) {
+    if (prefs[name] != null) return !!prefs[name];
+    return !server.show || server.show[name] !== false;
+  }
+  function nightEnabled() {
+    return prefs.night != null ? !!prefs.night : !!(server.night && server.night.enabled);
+  }
 
   // ---- saat ----------------------------------------------------------------
   var weekdayFmt = new Intl.DateTimeFormat('tr-TR', { weekday: 'long' });
@@ -44,8 +79,8 @@
   var lastDay = '';
 
   function isNight(hour) {
-    var n = settings.night;
-    if (!n || !n.enabled) return false;
+    var n = server.night;
+    if (!nightEnabled() || !n) return false;
     return n.from <= n.to ? hour >= n.from && hour < n.to : hour >= n.from || hour < n.to;
   }
 
@@ -53,8 +88,8 @@
     var now = new Date();
     $('hh').textContent = pad(now.getHours());
     $('mm').textContent = pad(now.getMinutes());
-    var night = isNight(now.getHours());
     $('ss').textContent = pad(now.getSeconds());
+    var night = isNight(now.getHours());
     var day = now.toDateString();
     if (day !== lastDay) {
       lastDay = day;
@@ -153,7 +188,7 @@
       .then(function (w) {
         weatherOk = true;
         renderWeather(w);
-        setTimeout(loadWeather, settings.weatherRefreshMinutes * 60000);
+        setTimeout(loadWeather, server.weatherRefreshMinutes * 60000);
       })
       .catch(function () {
         if (!weatherOk) {
@@ -164,12 +199,109 @@
       });
   }
 
-  // ---- haberler --------------------------------------------------------------
-  var newsItems = [];
+  // ---- ust serit: piyasa ve internet ---------------------------------------------
+  var marketData = null;
+  var netState = null;
+
+  function renderMarket(m) {
+    marketData = m;
+    var box = $('market');
+    box.textContent = '';
+    m.items.forEach(function (it) {
+      var up = it.change >= 0;
+      var e = el('span', 'mk');
+      var label = el('span', 'mk-l', it.label);
+      if (it.unit) label.appendChild(el('span', 'mk-u', it.unit));
+      e.appendChild(label);
+      e.appendChild(el('span', 'mk-v', fmt(it.value, it.digits)));
+      e.appendChild(el('span', 'mk-c ' + (up ? 'up' : 'down'), (up ? '▲ %' : '▼ %') + fmt(Math.abs(it.change), 2)));
+      box.appendChild(e);
+    });
+    applyLayout();
+  }
+
+  function loadMarket() {
+    if (!server.marketEnabled) return;
+    getJSON('/api/market')
+      .then(function (m) {
+        renderMarket(m);
+        setTimeout(loadMarket, server.marketRefreshMinutes * 60000);
+      })
+      .catch(function () {
+        setTimeout(loadMarket, 120000);
+      });
+  }
+
+  var netTimer = null;
+  function renderNet(n) {
+    netState = n || { unreachable: true };
+    var b = $('net');
+    b.textContent = '';
+    var text;
+    var cls = 'net';
+    if (!n) {
+      cls += ' bad';
+      text = "PC'ye ulaşılamıyor";
+    } else if (n.online === false) {
+      cls += ' bad';
+      text = 'İnternet yok';
+    } else {
+      var parts = [];
+      if (n.testing) parts.push('Ölçülüyor…');
+      else if (n.downMbps != null) parts.push('↓ ' + fmt(n.downMbps >= 100 ? Math.round(n.downMbps) : n.downMbps, n.downMbps >= 100 ? 0 : 1) + ' Mbps');
+      if (n.pingMs != null) parts.push(n.pingMs + ' ms');
+      text = parts.join('  ·  ') || 'Ölçülüyor…';
+      if (n.pingMs != null && n.pingMs >= 300) cls += ' bad';
+      else if (n.pingMs != null && n.pingMs >= 120) cls += ' warn';
+    }
+    b.className = cls;
+    b.appendChild(document.createElement('i'));
+    b.appendChild(document.createTextNode(text));
+    applyLayout();
+  }
+
+  function pollNet(delay) {
+    clearTimeout(netTimer);
+    netTimer = setTimeout(function () {
+      getJSON('/api/net')
+        .then(function (n) {
+          renderNet(n);
+          if (n.enabled !== false) pollNet(n.testing ? 3000 : 30000);
+        })
+        .catch(function () {
+          renderNet(null);
+          pollNet(15000);
+        });
+    }, delay);
+  }
+
+  // ---- haberler, kategoriler ve maclar ---------------------------------------------
+  var categories = [];
+  var matchData = null;
+  var matchSig = '';
+  var newsState = 'loading'; // loading | ok | error
   var newsUpdated = null;
   var newsStale = false;
+  var activeName = null;
   var page = 0;
   var pageTimer = null;
+
+  function catOn(c) {
+    if (c.type === 'matches' && server.matchesEnabled === false) return false;
+    return prefs.cats[c.name] != null ? !!prefs.cats[c.name] : c.enabled !== false;
+  }
+  function catItems(c) {
+    return c.type === 'matches' ? (matchData ? matchData.matches : []) : c.items;
+  }
+  function visibleCats() {
+    return categories.filter(function (c) {
+      return catOn(c) && catItems(c).length > 0;
+    });
+  }
+  function newsVisible() {
+    if (!featureOn('news')) return false;
+    return newsState !== 'ok' || visibleCats().length > 0;
+  }
 
   function ago(ts) {
     if (!ts) return '';
@@ -180,66 +312,329 @@
     return Math.floor(m / 1440) + ' gün önce';
   }
 
+  function dayLabel(ts) {
+    var d = new Date(ts);
+    var t = new Date();
+    if (d.toDateString() === t.toDateString()) return 'Bugün';
+    var tomorrow = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1);
+    if (d.toDateString() === tomorrow.toDateString()) return 'Yarın';
+    return shortDayFmt.format(d);
+  }
+
+  function newsRow(it) {
+    var item = el('div', 'item');
+    var meta = el('div', 'item-meta');
+    meta.appendChild(el('b', null, it.source));
+    var t = ago(it.ts);
+    if (t) meta.appendChild(document.createTextNode('  ·  ' + t));
+    item.appendChild(meta);
+    item.appendChild(el('div', 'item-title', it.title));
+    return item;
+  }
+
+  function matchRow(m) {
+    var row = el('div', 'item match');
+    var when = el('div', 'm-when');
+    var d = new Date(m.ts);
+    when.appendChild(el('div', 'm-day', dayLabel(m.ts)));
+    when.appendChild(el('div', 'm-time', pad(d.getHours()) + ':' + pad(d.getMinutes())));
+    row.appendChild(when);
+
+    var teams = el('div', 'm-teams');
+    teams.appendChild(el('div', m.homeTracked ? 'm-team mine' : 'm-team', m.home));
+    teams.appendChild(el('div', m.awayTracked ? 'm-team mine' : 'm-team', m.away));
+    teams.appendChild(el('div', 'm-league', m.league));
+    row.appendChild(teams);
+
+    var res = el('div', 'm-res');
+    if ((m.state === 'in' || m.state === 'post') && m.homeScore != null && m.awayScore != null) {
+      var score = el('div', 'm-score');
+      score.appendChild(el('div', null, m.homeScore));
+      score.appendChild(el('div', null, m.awayScore));
+      res.appendChild(score);
+    }
+    var badge = null;
+    if (m.state === 'in') badge = '● Oynanıyor' + (m.minute ? ' ' + m.minute : '');
+    else if (m.state === 'post') badge = 'Maç sonu';
+    else if (m.state === 'off') badge = m.note || 'Ertelendi';
+    if (badge) res.appendChild(el('div', 'm-badge ' + m.state, badge));
+    row.appendChild(res);
+    return row;
+  }
+
   function pageSize() {
     var list = $('news');
     var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
     return Math.max(2, Math.min(8, Math.floor(list.clientHeight / (8.4 * rem))));
   }
 
-  function drawPage() {
+  function drawNews() {
     var list = $('news');
-    list.textContent = '';
-    var size = pageSize();
-    var pages = Math.max(1, Math.ceil(newsItems.length / size));
-    page = page % pages;
-    list.style.setProperty('--rows', size);
-    newsItems.slice(page * size, page * size + size).forEach(function (it) {
-      var item = el('div', 'item');
-      var meta = el('div', 'item-meta');
-      meta.appendChild(el('b', null, it.source));
-      var t = ago(it.ts);
-      if (t) meta.appendChild(document.createTextNode('  ·  ' + t));
-      item.appendChild(meta);
-      item.appendChild(el('div', 'item-title', it.title));
-      list.appendChild(item);
+    if (newsState === 'loading') return;
+    if (newsState === 'error') {
+      $('chips').textContent = '';
+      $('dots').textContent = '';
+      list.textContent = '';
+      list.appendChild(el('div', 'placeholder', 'Haberlere ulaşılamıyor, tekrar denenecek…'));
+      return;
+    }
+    var cats = visibleCats();
+    if (!cats.length) return; // kart applyLayout ile gizlenir
+    var cur = cats.filter(function (c) {
+      return c.name === activeName;
+    })[0];
+    if (!cur) {
+      cur = cats[0];
+      activeName = cur.name;
+      page = 0;
+    }
+
+    var chips = $('chips');
+    chips.textContent = '';
+    cats.forEach(function (c) {
+      var b = el('button', c.name === cur.name ? 'chip on' : 'chip', c.name);
+      b.type = 'button';
+      b.addEventListener('click', function () {
+        selectCat(c.name);
+      });
+      chips.appendChild(b);
     });
+    var on = chips.querySelector('.on');
+    if (on && chips.scrollWidth > chips.clientWidth) {
+      var left = on.getBoundingClientRect().left - chips.getBoundingClientRect().left + chips.scrollLeft;
+      chips.scrollLeft = Math.max(0, left - (chips.clientWidth - on.offsetWidth) / 2);
+    }
+    chipsFade();
+
+    var items = catItems(cur);
+    var size = pageSize();
+    var pages = Math.max(1, Math.ceil(items.length / size));
+    page = page % pages;
+    list.textContent = '';
+    list.style.setProperty('--rows', size);
+    items.slice(page * size, page * size + size).forEach(function (it) {
+      list.appendChild(cur.type === 'matches' ? matchRow(it) : newsRow(it));
+    });
+
     var dots = $('dots');
     dots.textContent = '';
-    for (var i = 0; i < Math.min(pages, 12); i++) dots.appendChild(el('i', i === page % 12 ? 'on' : ''));
+    for (var i = 0; i < Math.min(pages, 8); i++) dots.appendChild(el('i', i === page % 8 ? 'on' : ''));
     var st = $('status');
     st.className = newsStale ? 'status stale' : 'status';
     st.textContent = newsUpdated ? pad(newsUpdated.getHours()) + ':' + pad(newsUpdated.getMinutes()) : '';
   }
 
+  // Sekmeler tasiyorsa sag kenarda solma ipucu goster (kaydirilabilir oldugunu belli eder).
+  function chipsFade() {
+    var c = $('chips');
+    c.classList.toggle('more', c.scrollWidth - c.scrollLeft - c.clientWidth > 4);
+  }
+
   function nextPage() {
-    if (!newsItems.length) return;
+    var cats = visibleCats();
+    if (!cats.length) return;
+    var idx = 0;
+    cats.forEach(function (c, i) {
+      if (c.name === activeName) idx = i;
+    });
+    var pages = Math.ceil(catItems(cats[idx]).length / pageSize());
+    if (cats.length === 1 && pages <= 1) return;
     var list = $('news');
     list.classList.add('fade');
     setTimeout(function () {
-      page++;
-      drawPage();
+      if (page + 1 < pages) page++;
+      else {
+        var all = visibleCats();
+        var i = 0;
+        all.forEach(function (c, j) {
+          if (c.name === activeName) i = j;
+        });
+        var next = all[(i + 1) % all.length];
+        activeName = next.name;
+        page = 0;
+      }
+      drawNews();
       list.classList.remove('fade');
     }, 400);
+  }
+
+  function restartTimer() {
+    clearInterval(pageTimer);
+    pageTimer = setInterval(nextPage, server.pageSeconds * 1000);
+  }
+
+  function selectCat(name) {
+    activeName = name;
+    page = 0;
+    drawNews();
+    restartTimer();
   }
 
   function loadNews() {
     getJSON('/api/news')
       .then(function (n) {
-        newsItems = n.items;
+        categories = n.categories;
         newsUpdated = new Date(n.updated);
         newsStale = !!n.stale;
-        drawPage();
-        setTimeout(loadNews, settings.newsRefreshMinutes * 60000);
+        newsState = 'ok';
+        applyAll();
+        setTimeout(loadNews, server.newsRefreshMinutes * 60000);
       })
       .catch(function () {
         newsStale = true;
-        if (newsItems.length) drawPage();
-        else {
-          $('news').textContent = '';
-          $('news').appendChild(el('div', 'placeholder', 'Haberlere ulaşılamıyor, tekrar denenecek…'));
-        }
+        if (newsState !== 'ok') newsState = 'error';
+        applyAll();
         setTimeout(loadNews, 60000);
       });
+  }
+
+  function loadMatches() {
+    if (server.matchesEnabled === false) return;
+    getJSON('/api/matches')
+      .then(function (m) {
+        matchData = m;
+        var sig = JSON.stringify(m.matches);
+        if (sig !== matchSig) {
+          matchSig = sig;
+          applyAll();
+        }
+        setTimeout(loadMatches, 60000);
+      })
+      .catch(function () {
+        setTimeout(loadMatches, 120000);
+      });
+  }
+
+  // ---- yerlesim: acik/kapali bolumlere gore ----------------------------------------
+  function applyLayout() {
+    var showMarket = featureOn('market') && server.marketEnabled !== false && !!marketData;
+    var showNet = featureOn('net') && !!netState && netState.enabled !== false;
+    $('market').hidden = !showMarket;
+    $('net').hidden = !showNet;
+    $('ticker').hidden = !(showMarket || showNet);
+    var news = newsVisible();
+    var forecast = featureOn('forecast');
+    $('newsCard').hidden = !news;
+    $('forecast').hidden = !forecast;
+    $('app').className = (news ? '' : 'no-news ') + (forecast ? '' : 'no-forecast');
+  }
+  function applyAll() {
+    applyLayout();
+    drawNews();
+  }
+
+  // ---- ayar paneli ---------------------------------------------------------------
+  var panelTimer = null;
+  function touchPanel() {
+    clearTimeout(panelTimer);
+    panelTimer = setTimeout(closePanel, 60000);
+  }
+  function closePanel() {
+    clearTimeout(panelTimer);
+    $('panel').hidden = true;
+  }
+  function changed() {
+    savePrefs();
+    applyAll();
+  }
+  function switchRow(label, sub, on, onChange) {
+    var b = el('button', 'row');
+    b.type = 'button';
+    b.setAttribute('role', 'switch');
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+    var t = el('span');
+    t.appendChild(document.createTextNode(label));
+    if (sub) t.appendChild(el('small', null, sub));
+    b.appendChild(t);
+    b.appendChild(el('span', 'sw'));
+    b.addEventListener('click', function () {
+      on = !on;
+      b.setAttribute('aria-checked', on ? 'true' : 'false');
+      onChange(on);
+      touchPanel();
+    });
+    return b;
+  }
+
+  function buildPanel() {
+    var card = $('panelCard');
+    card.textContent = '';
+    card.appendChild(el('div', 'panel-title', 'Ayarlar'));
+
+    card.appendChild(el('div', 'panel-group', 'Ekranda göster'));
+    card.appendChild(
+      switchRow('Piyasa şeridi', 'Dolar, euro, gram altın', featureOn('market'), function (v) {
+        prefs.market = v;
+        changed();
+      })
+    );
+    card.appendChild(
+      switchRow('İnternet hızı', 'Sağ üstteki küçük gösterge', featureOn('net'), function (v) {
+        prefs.net = v;
+        changed();
+      })
+    );
+    card.appendChild(
+      switchRow('7 günlük tahmin', null, featureOn('forecast'), function (v) {
+        prefs.forecast = v;
+        changed();
+      })
+    );
+    card.appendChild(
+      switchRow('Haberler ve maçlar', null, featureOn('news'), function (v) {
+        prefs.news = v;
+        changed();
+      })
+    );
+
+    var shown = categories.filter(function (c) {
+      return c.type !== 'matches' || server.matchesEnabled !== false;
+    });
+    if (shown.length) {
+      card.appendChild(el('div', 'panel-group', 'Haber kategorileri'));
+      var grid = el('div', 'cat-grid');
+      shown.forEach(function (c) {
+        grid.appendChild(
+          switchRow(c.name, null, catOn(c), function (v) {
+            prefs.cats[c.name] = v;
+            changed();
+          })
+        );
+      });
+      card.appendChild(grid);
+    }
+
+    var n = server.night || {};
+    card.appendChild(el('div', 'panel-group', 'Gece'));
+    card.appendChild(
+      switchRow('Gece modu', pad(n.from || 0) + ':00 – ' + pad(n.to || 0) + ':00 arası yalnızca loş saat', nightEnabled(), function (v) {
+        prefs.night = v;
+        changed();
+      })
+    );
+
+    var actions = el('div', 'panel-actions');
+    var reset = el('button', 'btn', 'Varsayılana dön');
+    reset.type = 'button';
+    reset.addEventListener('click', function () {
+      prefs = { cats: {} };
+      savePrefs();
+      applyAll();
+      buildPanel();
+      touchPanel();
+    });
+    var close = el('button', 'btn primary', 'Kapat');
+    close.type = 'button';
+    close.addEventListener('click', closePanel);
+    actions.appendChild(reset);
+    actions.appendChild(close);
+    card.appendChild(actions);
+  }
+
+  function openPanel() {
+    buildPanel();
+    $('panel').hidden = false;
+    touchPanel();
   }
 
   // ---- tam ekran dugmesi (Ana Ekrana ekli degilse) ---------------------------------
@@ -261,9 +656,25 @@
   }
 
   // ---- baslat ----------------------------------------------------------------
-  window.addEventListener('resize', function () {
-    if (newsItems.length) drawPage();
+  window.addEventListener('resize', applyAll);
+  $('chips').addEventListener('scroll', chipsFade);
+  $('gear').addEventListener('click', openPanel);
+  $('panel').addEventListener('click', function (e) {
+    if (e.target === $('panel')) closePanel();
   });
+  $('panelCard').addEventListener('pointerdown', touchPanel);
+  $('net').addEventListener('click', function () {
+    // Dokununca indirme hizini hemen olc (sunucu art arda olcumleri sinirlar).
+    getJSON('/api/net?test=1')
+      .then(function (n) {
+        renderNet(n);
+        pollNet(3000);
+      })
+      .catch(function () {
+        renderNet(null);
+      });
+  });
+
   var peekTimer = null;
   document.addEventListener('pointerdown', function () {
     // Gece modunda dokununca 30 saniyeligine tum panoyu goster.
@@ -281,14 +692,21 @@
 
   tick();
   setupFullscreen();
+  applyLayout();
   getJSON('/api/config')
     .then(function (s) {
-      settings = s;
+      Object.keys(s).forEach(function (k) {
+        server[k] = s[k];
+      });
     })
     .catch(function () {})
     .then(function () {
+      applyLayout();
       loadWeather();
       loadNews();
-      pageTimer = setInterval(nextPage, settings.pageSeconds * 1000);
+      loadMarket();
+      loadMatches();
+      pollNet(0);
+      restartTimer();
     });
 })();

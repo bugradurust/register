@@ -10,11 +10,16 @@
   --cool: #7cc4ff;
   --ok: #4cd08a;
   --warn: #ffb454;
+  --down: #ff6b6b;
 }
 
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 /* iPad'de iki yonde de ayni yazi olcegi: 1rem ~ ekranin kisa kenarinin %1.3'u */
@@ -42,61 +47,58 @@ body {
   transition: filter 2s ease;
 }
 
-/* Gece (yatak odasi) modu: saf siyah zemin uzerinde yalniz loş saat. Dokununca 30 sn tum pano acilir. */
-body.night.peek {
-  filter: brightness(0.45);
-}
-body.night:not(.peek) {
-  background: #000;
-}
-body.night:not(.peek) .now,
-body.night:not(.peek) .forecast,
-body.night:not(.peek) .news,
-body.night:not(.peek) .fs {
-  display: none;
-}
-body.night:not(.peek) #app {
-  grid-template-columns: 1fr;
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-areas: 'clock';
-}
-body.night:not(.peek) .clock {
-  background: none;
-  border: 0;
-  align-items: center;
-  text-align: center;
-}
-body.night:not(.peek) .time {
-  font-size: 26rem;
-  color: #8a4f1a;
-}
-body.night:not(.peek) .secs {
-  display: none;
-}
-body.night:not(.peek) .dateline,
-body.night:not(.peek) .weekday {
-  color: #4d3320;
-}
-body.night:not(.peek) .sun {
-  display: none;
+button {
+  font-family: inherit;
 }
 
-#app {
+/* ---- yerlesim ---- */
+#screen {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
-  display: grid;
-  gap: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
   padding: max(env(safe-area-inset-top), 2.2rem) max(env(safe-area-inset-right), 2.4rem)
     max(env(safe-area-inset-bottom), 2.2rem) max(env(safe-area-inset-left), 2.4rem);
-  grid-template-columns: 1fr 1.4fr;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
-  grid-template-areas:
-    'clock news'
-    'now news'
-    'forecast forecast';
+}
+
+#app {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  gap: 1.6rem;
+}
+
+/* Kartlar kapatilinca bos yer birakmasin diye her kombinasyon icin ayri yerlesim */
+@media (orientation: landscape) {
+  #app {
+    grid-template-columns: 1fr 1.4fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-areas:
+      'clock news'
+      'now news'
+      'forecast forecast';
+  }
+  #app.no-forecast {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      'clock news'
+      'now news';
+  }
+  #app.no-news {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'clock now'
+      'forecast forecast';
+  }
+  #app.no-news.no-forecast {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'clock now';
+  }
 }
 
 @media (orientation: portrait) {
@@ -107,6 +109,22 @@ body.night:not(.peek) .sun {
       'clock now'
       'forecast forecast'
       'news news';
+  }
+  #app.no-forecast {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      'clock now'
+      'news news';
+  }
+  #app.no-news {
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'clock now'
+      'forecast forecast';
+  }
+  #app.no-news.no-forecast {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'clock now';
   }
 }
 
@@ -124,6 +142,82 @@ body.night:not(.peek) .sun {
   font-size: 2.4rem;
   padding: 2rem 0;
   text-align: center;
+}
+
+/* ---- ust serit: piyasa + internet ---- */
+.ticker {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 2rem;
+  min-height: 4rem;
+  padding: 0 0.8rem;
+}
+.market {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  gap: 2.8rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.mk {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.8rem;
+}
+.mk-l {
+  font-size: 1.7rem;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.mk-v {
+  font-size: 2.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mk-c {
+  font-size: 1.7rem;
+  font-variant-numeric: tabular-nums;
+}
+.mk-u {
+  margin-left: 0.4rem;
+}
+.up {
+  color: var(--ok);
+}
+.down {
+  color: var(--down);
+}
+.net {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 1.8rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.net i {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: var(--ok);
+}
+.net.warn i {
+  background: var(--warn);
+}
+.net.bad i {
+  background: var(--down);
+}
+.net.bad {
+  color: var(--down);
 }
 
 /* ---- saat ---- */
@@ -190,12 +284,12 @@ body.night:not(.peek) .sun {
   gap: 1.6rem;
 }
 .now-icon {
-  font-size: 8rem;
-  line-height: 1.1;
+  font-size: 7.4rem;
+  line-height: 1.05;
 }
 .now-temp {
-  font-size: 9rem;
-  line-height: 1.1;
+  font-size: 8.4rem;
+  line-height: 1.05;
   font-weight: 200;
 }
 .now-desc {
@@ -212,7 +306,7 @@ body.night:not(.peek) .sun {
 .now-stats b {
   display: block;
   color: var(--text);
-  font-size: 2.4rem;
+  font-size: 2.2rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -261,7 +355,7 @@ body.night:not(.peek) .sun {
   white-space: nowrap;
 }
 
-/* ---- haberler ---- */
+/* ---- haberler ve maclar ---- */
 .news {
   grid-area: news;
   display: flex;
@@ -269,33 +363,63 @@ body.night:not(.peek) .sun {
   padding-bottom: 1.2rem;
 }
 .news-head {
+  flex: none;
   display: flex;
   align-items: center;
-  gap: 1.6rem;
+  gap: 1.2rem;
   margin-bottom: 0.6rem;
   font-size: 2rem;
   color: var(--muted);
 }
-.news-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-.dots {
+.chips {
+  flex: 1;
+  min-width: 0;
   display: flex;
   gap: 0.6rem;
-  flex: 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chips.more {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 3.4rem), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 3.4rem), transparent);
+}
+.chip {
+  flex: none;
+  padding: 0.5rem 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  background: none;
+  color: var(--muted);
+  font-size: 1.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.chip.on {
+  border-color: transparent;
+  background: var(--accent);
+  color: #0b1020;
+}
+.dots {
+  flex: none;
+  display: flex;
+  gap: 0.5rem;
 }
 .dots i {
-  width: 1rem;
-  height: 1rem;
+  width: 0.9rem;
+  height: 0.9rem;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.18);
 }
 .dots i.on {
   background: var(--accent);
+}
+.status {
+  flex: none;
+  font-size: 1.8rem;
 }
 .status::before {
   content: '';
@@ -350,10 +474,86 @@ body.night:not(.peek) .sun {
   overflow: hidden;
 }
 
-/* ---- tam ekran dugmesi (yalniz Safari sekmesinde gorunur) ---- */
-.fs {
+/* mac satiri: [gun/saat] [takimlar] [skor + durum] */
+.item.match {
+  display: grid;
+  grid-template-columns: 7.4rem minmax(0, 1fr) auto;
+  column-gap: 1.6rem;
+  align-items: center;
+}
+.m-when {
+  text-align: center;
+}
+.m-day {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.m-time {
+  font-size: 2.8rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.m-teams {
+  min-width: 0;
+}
+.m-team {
+  font-size: 2.3rem;
+  line-height: 1.2;
+  color: #c3cee0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m-team.mine {
+  color: var(--text);
+  font-weight: 700;
+}
+.m-league {
+  margin-top: 0.2rem;
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.m-res {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+.m-score {
+  font-size: 2.6rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.m-badge {
+  max-width: 13rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: right;
+  color: var(--muted);
+}
+.m-badge.in {
+  color: var(--down);
+  animation: blink 1.6s ease-in-out infinite;
+}
+.m-badge.off {
+  color: var(--warm);
+}
+@keyframes blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* ---- kose dugmeleri ---- */
+.corner {
   position: fixed;
-  right: 0.8rem;
   bottom: 0.4rem;
   width: 4.4rem;
   height: 4.4rem;
@@ -364,6 +564,209 @@ body.night:not(.peek) .sun {
   font-size: 2.8rem;
   opacity: 0.45;
 }
-.fs[hidden] {
+.gear {
+  right: 0.8rem;
+}
+.fs {
+  right: 5.6rem;
+}
+
+/* ---- ayar paneli ---- */
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 8, 16, 0.72);
+}
+.panel-card {
+  width: min(68rem, 92vw);
+  max-height: 92%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 2.2rem 2.8rem 0;
+  border: 1px solid var(--line);
+  border-radius: 2.4rem;
+  background: #16213a;
+}
+.panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 3rem;
+  font-weight: 700;
+}
+.panel-group {
+  margin: 1.8rem 0 0.2rem;
+  font-size: 1.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.row {
+  width: 100%;
+  min-height: 5.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.6rem;
+  padding: 0.4rem 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  color: var(--text);
+  font-size: 2.4rem;
+  text-align: left;
+}
+.row small {
+  display: block;
+  font-size: 1.7rem;
+  color: var(--muted);
+}
+.sw {
+  position: relative;
+  flex: none;
+  width: 6.4rem;
+  height: 3.6rem;
+  border-radius: 1.8rem;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.2s;
+}
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 0.3rem;
+  left: 0.3rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.row[aria-checked='true'] .sw {
+  background: var(--ok);
+}
+.row[aria-checked='true'] .sw::after {
+  transform: translateX(2.8rem);
+}
+.cat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 3rem;
+}
+.panel-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 1.2rem;
+  margin-top: 0.8rem;
+  padding: 1.4rem 0 2.4rem;
+  background: #16213a;
+}
+.btn {
+  flex: 1;
+  min-height: 5rem;
+  border: 1px solid var(--line);
+  border-radius: 2.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+.btn.primary {
+  border-color: transparent;
+  background: var(--accent);
+  color: #0b1020;
+}
+
+/* ---- yonlendirmeye gore ince ayar ---- */
+@media (orientation: landscape) {
+  /* Sag kart dar: sekmelere yer acmak icin nokta gostergesi gizlenir, saat yerine yalniz renkli nokta kalir */
+  .dots {
+    display: none;
+  }
+  .status {
+    font-size: 0;
+  }
+  .status::before {
+    margin-right: 0;
+  }
+  .row {
+    min-height: 4.6rem;
+    font-size: 2.2rem;
+  }
+  .panel-title {
+    font-size: 2.6rem;
+  }
+  .panel-group {
+    margin-top: 1.2rem;
+  }
+}
+@media (orientation: portrait) {
+  .market {
+    gap: 2rem;
+  }
+  .mk {
+    gap: 0.6rem;
+  }
+  .mk-l {
+    font-size: 1.5rem;
+  }
+  .mk-v {
+    font-size: 2.2rem;
+  }
+  .mk-c {
+    font-size: 1.5rem;
+  }
+  .mk-u {
+    display: none;
+  }
+  .net {
+    font-size: 1.6rem;
+  }
+}
+
+/* ---- gece modu: saf siyah zemin uzerinde yalniz loş saat; dokununca 30 sn tum pano ---- */
+body.night.peek {
+  filter: brightness(0.45);
+}
+body.night:not(.peek) {
+  background: #000;
+}
+body.night:not(.peek) .ticker,
+body.night:not(.peek) .now,
+body.night:not(.peek) .forecast,
+body.night:not(.peek) .news,
+body.night:not(.peek) .corner {
+  display: none;
+}
+body.night:not(.peek) #app {
+  grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'clock';
+}
+body.night:not(.peek) .clock {
+  background: none;
+  border: 0;
+  align-items: center;
+  text-align: center;
+}
+body.night:not(.peek) .time {
+  font-size: 26rem;
+  color: #8a4f1a;
+}
+body.night:not(.peek) .secs {
+  display: none;
+}
+body.night:not(.peek) .dateline,
+body.night:not(.peek) .weekday {
+  color: #4d3320;
+}
+body.night:not(.peek) .sun {
   display: none;
 }

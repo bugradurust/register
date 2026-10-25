@@ -1,0 +1,104 @@
+{
+  "port": 3000,
+  "city": "auto",
+  "latitude": null,
+  "longitude": null,
+  "weatherRefreshMinutes": 15,
+  "newsRefreshMinutes": 15,
+  "newsPerSource": 6,
+  "itemsPerCategory": 10,
+  "pageSeconds": 15,
+  "show": {
+    "market": true,
+    "net": true,
+    "forecast": true,
+    "news": true
+  },
+  "night": {
+    "enabled": false,
+    "from": 23,
+    "to": 7
+  },
+  "market": {
+    "enabled": true,
+    "refreshMinutes": 5,
+    "items": ["USD", "EUR", "GOLD"],
+    "providers": ["yahoo", "truncgil"]
+  },
+  "net": {
+    "enabled": true,
+    "pingSeconds": 30,
+    "speedMinutes": 60,
+    "speedBytes": 8000000
+  },
+  "matches": {
+    "enabled": true,
+    "teams": ["Galatasaray", "Fenerbahçe", "Beşiktaş"],
+    "liveRefreshMinutes": 1,
+    "idleRefreshMinutes": 30,
+    "leagues": [
+      { "id": "tur.1", "name": "Süper Lig" },
+      { "id": "tur.cup", "name": "Türkiye Kupası" },
+      { "id": "uefa.champions", "name": "Şampiyonlar Ligi" },
+      { "id": "uefa.europa", "name": "Avrupa Ligi" },
+      { "id": "uefa.europa.conf", "name": "Konferans Ligi" }
+    ]
+  },
+  "newsBundles": [
+    { "name": "Maçlar", "type": "matches" },
+    {
+      "name": "Gündem",
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/gundem_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=guncel" },
+        { "name": "NTV", "url": "https://www.ntv.com.tr/son-dakika.rss" }
+      ]
+    },
+    {
+      "name": "Ekonomi",
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/ekonomi_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=ekonomi" }
+      ]
+    },
+    {
+      "name": "Spor",
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/spor_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=spor" }
+      ]
+    },
+    {
+      "name": "Dünya",
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/dunya_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=dunya" },
+        { "name": "BBC Türkçe", "url": "https://feeds.bbci.co.uk/turkce/rss.xml" }
+      ]
+    },
+    {
+      "name": "Teknoloji",
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/bilim_teknoloji_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=bilim-teknoloji" },
+        { "name": "ShiftDelete", "url": "https://shiftdelete.net/feed" }
+      ]
+    },
+    {
+      "name": "Sağlık",
+      "enabled": false,
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/saglik_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=saglik" }
+      ]
+    },
+    {
+      "name": "Kültür-Sanat",
+      "enabled": false,
+      "feeds": [
+        { "name": "TRT Haber", "url": "https://www.trthaber.com/kultur_sanat_articles.rss" },
+        { "name": "Anadolu Ajansı", "url": "https://www.aa.com.tr/tr/rss/default?cat=kultur" }
+      ]
+    }
+  ]
+}

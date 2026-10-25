@@ -18,32 +18,46 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <main id="app">
-      <section class="card clock">
-        <div class="time"><span id="hh">--</span><span id="colon" class="colon">:</span><span id="mm">--</span><span id="ss" class="secs">--</span></div>
-        <div class="dateline"><span id="weekday" class="weekday"></span> <span id="date"></span></div>
-        <div id="sun" class="sun"></div>
-      </section>
+    <div id="screen">
+      <header id="ticker" class="ticker" hidden>
+        <div id="market" class="market"></div>
+        <button id="net" class="net" type="button" hidden></button>
+      </header>
 
-      <section class="card now" id="now">
-        <div class="placeholder">Hava durumu yükleniyor…</div>
-      </section>
+      <main id="app">
+        <section class="card clock">
+          <div class="time">
+            <span id="hh">--</span><span id="colon" class="colon">:</span><span id="mm">--</span
+            ><span id="ss" class="secs">--</span>
+          </div>
+          <div class="dateline"><span id="weekday" class="weekday"></span> <span id="date"></span></div>
+          <div id="sun" class="sun"></div>
+        </section>
 
-      <section class="card forecast" id="forecast"></section>
+        <section class="card now" id="now">
+          <div class="placeholder">Hava durumu yükleniyor…</div>
+        </section>
 
-      <section class="card news">
-        <header class="news-head">
-          <span class="news-title">Son Haberler</span>
-          <span id="dots" class="dots"></span>
-          <span id="status" class="status"></span>
-        </header>
-        <div id="news" class="news-list">
-          <div class="placeholder">Haberler yükleniyor…</div>
-        </div>
-      </section>
-    </main>
+        <section class="card forecast" id="forecast"></section>
 
-    <button id="fs" class="fs" hidden aria-label="Tam ekran">⛶</button>
+        <section class="card news" id="newsCard">
+          <header class="news-head">
+            <nav id="chips" class="chips"></nav>
+            <span id="dots" class="dots"></span>
+            <span id="status" class="status"></span>
+          </header>
+          <div id="news" class="news-list">
+            <div class="placeholder">Haberler yükleniyor…</div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <button id="fs" class="corner fs" hidden aria-label="Tam ekran">⛶</button>
+    <button id="gear" class="corner gear" aria-label="Ayarlar">⚙︎</button>
+    <div id="panel" class="panel" hidden>
+      <div id="panelCard" class="panel-card"></div>
+    </div>
     <script src="app.js"></script>
   </body>
 </html>
