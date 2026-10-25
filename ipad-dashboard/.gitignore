@@ -1,0 +1,2 @@
+# Kok dizindeki "*.js" kurali bu klasordeki kodu da yok sayiyordu.
+!*.js
