@@ -10,7 +10,7 @@ iPad'i tam ekran bir pano yapar: büyük saat, anlık hava durumu, **7 günlük 
 
 1. [nodejs.org](https://nodejs.org) adresinden **LTS** sürümünü kurun.
 2. Bu klasörü PC'ye kopyalayın (örneğin `C:\pano`).
-3. `config.json` dosyasında `city` alanına şehrinizi yazın (varsayılan İstanbul). Koordinatı otomatik bulunur.
+3. Konum kendiliğinden bulunur: sunucu PC'nin internet (IP) adresinden şehri tahmin eder ve her 6 saatte bir kontrol eder. Bulunan şehir `start.bat` penceresinde yazar. Yanlışsa (aşağıdaki nota bakın) `config.json` dosyasında `city` alanına şehrinizi yazın.
 4. `start.bat` dosyasına çift tıklayın. Pencerede iPad'de açılacak adres çıkar:
 
    ```
@@ -55,7 +55,7 @@ Not: iPad sürekli şarjda kalırsa pil yıllar içinde şişebilir. Prizi bir z
 | Alan | Anlamı |
 | --- | --- |
 | `port` | Sunucu portu (varsayılan 3000) |
-| `city` | Hava durumu şehri |
+| `city` | Hava durumu şehri. `"auto"` (varsayılan) IP adresinden bulur, `"Ankara"` gibi bir ad yazarsanız onu kullanır |
 | `latitude`, `longitude` | Şehir adı yerine koordinat vermek için (ikisi de sayı olmalı) |
 | `weatherRefreshMinutes`, `newsRefreshMinutes` | Yenileme sıklığı, dakika (varsayılan: hava durumu 15, haberler 15) |
 | `newsFeeds` | Haber kaynakları: `name` ve `url` (RSS/Atom) |
@@ -68,10 +68,14 @@ Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
 ## Sorun giderme
 
 - **iPad açılmıyor:** İkisi aynı Wi-Fi'de mi? PC'de `http://localhost:3000` açılıyor mu? Açılıyorsa güvenlik duvarı kuralı eksiktir (`kurulum-yonetici.bat`) ya da Windows ağı "Genel" olarak işaretlidir. **Ayarlar → Ağ ve İnternet → Wi-Fi → ağınız → Özel ağ** yapın.
-- **Hava durumu "alınamadı":** PC internete çıkabiliyor mu? `city` adı doğru mu? Pencerede hata mesajı yazar.
+- **Hava durumu "alınamadı":** PC internete çıkabiliyor mu? `city` adı doğru mu (ya da `auto` ile IP'den konum bulunamıyor mu)? Pencerede hata mesajı yazar.
 - **Bir haber kaynağı `✗`:** Sitesi RSS adresini değiştirmiş olabilir. Tarayıcıda adresi açıp deneyin, çalışmıyorsa `config.json`'dan çıkarın ya da başka bir RSS ekleyin.
 - **Port kullanımda:** `config.json`'da `port` değerini değiştirin ve `kurulum-yonetici.bat <port>` çalıştırın.
 - **Otomatik başlatmayı kaldırmak:** `schtasks /delete /tn "iPad Pano" /f`
+
+## Konum notu
+
+`auto` konumu internet adresinizden (IP) bulur, GPS kullanmaz (Safari konum iznini yalnızca HTTPS sayfalara verir). Doğruluğu şehir düzeyindedir. Bazı internet sağlayıcıları adresi başka bir şehre kaydedebilir. Pencerede yanlış şehir çıkarsa `config.json` içinde `"city": "Ankara"` gibi kendi şehrinizi yazın. Konum bulunurken PC'nin IP adresi `ipwho.is`, `geojs.io` veya `ipapi.co` servislerine gider.
 
 ## Güvenlik
 
