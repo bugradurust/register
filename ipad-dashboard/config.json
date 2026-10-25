@@ -9,7 +9,7 @@
   "newsTotal": 30,
   "pageSeconds": 15,
   "night": {
-    "enabled": true,
+    "enabled": false,
     "from": 23,
     "to": 7
   },

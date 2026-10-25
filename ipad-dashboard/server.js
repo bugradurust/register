@@ -20,7 +20,7 @@ const config = {
   newsPerSource: 8,
   newsTotal: 30,
   pageSeconds: 15,
-  night: { enabled: true, from: 23, to: 7 },
+  night: { enabled: false, from: 23, to: 7 },
   newsFeeds: [],
   ...JSON.parse(await fs.readFile(path.join(ROOT, 'config.json'), 'utf8'))
 };

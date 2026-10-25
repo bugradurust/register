@@ -9,7 +9,7 @@
     pageSeconds: 15,
     weatherRefreshMinutes: 15,
     newsRefreshMinutes: 15,
-    night: { enabled: true, from: 23, to: 7 }
+    night: { enabled: false, from: 23, to: 7 }
   };
 
   // Metin her zaman textContent ile yazilir; haber basliklari HTML olarak yorumlanmaz.

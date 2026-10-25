@@ -36,17 +36,11 @@ PC yeniden başlayınca otomatik girişin açık olması gerekir (`Win + R` → 
 4. Şarjda bırakın.
 5. İsteğe bağlı: **Ayarlar → Erişilebilirlik → Rehberli Erişim** açıp panoda Ana Ekran düğmesine üç kez basın. Ekran yanlışlıkla başka uygulamaya geçmez.
 
-## 3. Yatak başı kullanımı
+## 3. Gece modu (isteğe bağlı)
 
-Gece 23:00 ile 07:00 arasında pano kendiliğinden **gece moduna** geçer: saf siyah zemin üzerinde yalnızca loş kehribar bir saat. Haber ve hava durumu gizlenir, hiçbir şey kayıp yanıp sönmez. Ekrana dokunursanız tüm pano 30 saniye loş olarak görünür.
+Pano varsayılan olarak gece gündüz tam görünür. Odada gece ışık yaymasını istemiyorsanız (örneğin yatak odasında) **gece modunu** açabilirsiniz: `config.json` içinde `night` bölümünde `"enabled": true` yapın. Pano o zaman 23:00 ile 07:00 arasında kendiliğinden saf siyah zemin üzerinde yalnızca loş kehribar bir saate geçer. Haber ve hava durumu gizlenir. Ekrana dokunursanız tüm pano 30 saniye loş olarak görünür. Saatleri `from` ve `to` ile değiştirebilirsiniz.
 
-Odayı gerçekten karartmak için iPad ayarları:
-
-- **Ayarlar → Erişilebilirlik → Ekran ve Metin Boyutu → Otomatik Parlaklık** açık olsun. Mini 4'ün ışık sensörü gece parlaklığı kendiliğinden düşürür.
-- **Night Shift**'i açın (Ekran ve Parlaklık) ve parlaklığı elle de düşük tutun.
-- **Rahatsız Etmeyin**'i açın, bildirimler ekranı yakmasın.
-
-Gece saatlerini `config.json` içindeki `night` bölümünden değiştirin. Kapatmak için `"enabled": false`.
+Karanlık odada ayrıca iPad ayarlarından **Otomatik Parlaklık** (Erişilebilirlik → Ekran ve Metin Boyutu), **Night Shift** ve **Rahatsız Etmeyin** açık olsun.
 
 Not: iPad sürekli şarjda kalırsa pil yıllar içinde şişebilir. Prizi bir zamanlayıcı ya da akıllı fişle bağlamak ya da arada şarjdan çıkarmak iyi olur.
 
@@ -61,7 +55,7 @@ Not: iPad sürekli şarjda kalırsa pil yıllar içinde şişebilir. Prizi bir z
 | `newsFeeds` | Haber kaynakları: `name` ve `url` (RSS/Atom) |
 | `newsPerSource`, `newsTotal` | Kaynak başına ve toplam haber sayısı |
 | `pageSeconds` | Haber sayfası değişme süresi |
-| `night` | Gece modu: `enabled`, `from` ve `to` (saat, 0-24) |
+| `night` | Gece modu (varsayılan kapalı): `enabled`, `from` ve `to` (saat, 0-24) |
 
 Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
 
