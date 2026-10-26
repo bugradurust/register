@@ -400,7 +400,7 @@ button {
   border-top: 0;
 }
 .item-meta {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--muted);
@@ -410,7 +410,7 @@ button {
   font-weight: 700;
 }
 .item-title {
-  font-size: 2.4rem;
+  font-size: 1.9rem;
   line-height: 1.2;
   font-weight: 600;
   display: -webkit-box;

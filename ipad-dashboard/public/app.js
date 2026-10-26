@@ -334,7 +334,7 @@
     return Math.max(min, Math.min(max, Math.floor(list.clientHeight / (rowRem * rem))));
   }
   function pageSize() {
-    return listSize($('news'), 8.4, 1, 8);
+    return listSize($('news'), 6.6, 1, 8);
   }
 
   function drawNews() {
@@ -840,6 +840,30 @@
 
   // ---- baslat ----------------------------------------------------------------
   window.addEventListener('resize', applyAll);
+  // Hava durumu, alt serit gibi kartlar sonradan dolunca haber ve mac listelerinin yuksekligi degisir;
+  // sayfa boyutu (kac satir sigacagi) yeni yukseklige gore yeniden hesaplanir.
+  if (window.ResizeObserver) {
+    var listHeights = {};
+    var listTimer = null;
+    var listObserver = new ResizeObserver(function (entries) {
+      var changed = false;
+      entries.forEach(function (e) {
+        var h = Math.round(e.contentRect.height);
+        if (listHeights[e.target.id] == null || Math.abs(listHeights[e.target.id] - h) > 6) {
+          listHeights[e.target.id] = h;
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      clearTimeout(listTimer);
+      listTimer = setTimeout(function () {
+        drawNews();
+        drawMatches();
+      }, 120);
+    });
+    listObserver.observe($('news'));
+    listObserver.observe($('matchList'));
+  }
   $('chips').addEventListener('scroll', chipsFade);
   $('story').addEventListener('click', function (e) {
     if (e.target === $('story')) closeStory();
