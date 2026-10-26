@@ -209,13 +209,16 @@
     var box = $('market');
     box.textContent = '';
     m.items.forEach(function (it) {
-      var up = it.change >= 0;
+      var has = typeof it.change === 'number' && isFinite(it.change);
+      var up = has && it.change >= 0;
       var e = el('span', 'mk');
       var label = el('span', 'mk-l', it.label);
       if (it.unit) label.appendChild(el('span', 'mk-u', it.unit));
       e.appendChild(label);
       e.appendChild(el('span', 'mk-v', fmt(it.value, it.digits)));
-      e.appendChild(el('span', 'mk-c ' + (up ? 'up' : 'down'), (up ? '▲ %' : '▼ %') + fmt(Math.abs(it.change), 2)));
+      e.appendChild(
+        el('span', 'mk-c ' + (!has ? 'flat' : up ? 'up' : 'down'), !has ? '—' : (up ? '▲ %' : '▼ %') + fmt(Math.abs(it.change), 2))
+      );
       box.appendChild(e);
     });
     applyLayout();
@@ -828,11 +831,13 @@
     if (!request || standalone) return;
     var btn = $('fs');
     btn.hidden = false;
+    document.body.classList.add('has-fs');
     btn.addEventListener('click', function () {
       request.call(root);
     });
     function sync() {
       btn.hidden = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      document.body.classList.toggle('has-fs', !btn.hidden);
     }
     document.addEventListener('fullscreenchange', sync);
     document.addEventListener('webkitfullscreenchange', sync);

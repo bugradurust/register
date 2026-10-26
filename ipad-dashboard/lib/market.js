@@ -11,22 +11,27 @@ async function yahooQuote(symbol) {
   const d = await fetchJson(url, { headers: { 'user-agent': BROWSER_UA } });
   const r = d.chart?.result?.[0];
   if (!r) throw new Error(d.chart?.error?.description || `${symbol}: veri yok`);
-  const closes = (r.indicators?.quote?.[0]?.close || []).filter(Number.isFinite);
-  const price = r.meta?.regularMarketPrice ?? closes.at(-1);
+  const stamps = r.timestamp || [];
+  const closes = r.indicators?.quote?.[0]?.close || [];
+  const bars = stamps.map((t, i) => ({ t, c: closes[i] })).filter((b) => Number.isFinite(b.c));
+  const price = r.meta?.regularMarketPrice ?? bars.at(-1)?.c;
   if (!Number.isFinite(price)) throw new Error(`${symbol}: fiyat yok`);
-  // Son gunluk mum canli fiyatsa onceki gun, degilse son kapanis "dun"dur.
-  const last = closes.at(-1);
-  const prev = last !== undefined && Math.abs(last - price) < 1e-9 ? closes.at(-2) : last;
-  return { price, prev: Number.isFinite(prev) ? prev : r.meta?.previousClose };
+  // Son gunluk mum bugunun muma ise "onceki kapanis" bir oncekidir; degilse son mumun kendisi.
+  const day = (t) => Math.floor((t + (r.meta?.gmtoffset || 0)) / 86400);
+  const last = bars.at(-1);
+  let prev = last ? (day(last.t) === day(r.meta?.regularMarketTime ?? last.t) ? bars.at(-2)?.c : last.c) : undefined;
+  prev ??= r.meta?.previousClose ?? r.meta?.chartPreviousClose;
+  return { price, prev: Number.isFinite(prev) ? prev : null };
 }
 
-const pct = (price, prev) => (Number.isFinite(prev) && prev ? ((price - prev) / prev) * 100 : 0);
+// Degisim bilinmiyorsa null: ekranda sifir gibi gosterilmez, "—" yazar.
+const pct = (price, prev) => (Number.isFinite(prev) && prev ? ((price - prev) / prev) * 100 : null);
 
 async function yahoo() {
   const [usd, eur, ounce] = await Promise.all([yahooQuote('USDTRY=X'), yahooQuote('EURTRY=X'), yahooQuote('GC=F')]);
   const gram = (o, u) => (o * u) / OUNCE_GRAMS; // ons altin (USD) x dolar / ons gram sayisi
   const goldNow = gram(ounce.price, usd.price);
-  const goldPrev = gram(ounce.prev, usd.prev);
+  const goldPrev = Number.isFinite(ounce.prev) && Number.isFinite(usd.prev) ? gram(ounce.prev, usd.prev) : null;
   return {
     USD: { value: usd.price, change: pct(usd.price, usd.prev) },
     EUR: { value: eur.price, change: pct(eur.price, eur.prev) },
@@ -62,7 +67,7 @@ async function truncgil() {
     const value = trNumber(pick(entry, ['selling', 'satis', 'sell']) ?? pick(entry, ['buying', 'alis', 'buy']));
     if (!Number.isFinite(value)) throw new Error(`${label} fiyati okunamadi`);
     const change = trNumber(pick(entry, ['change', 'degisim']));
-    return { value, change: Number.isFinite(change) ? change : 0 };
+    return { value, change: Number.isFinite(change) ? change : null };
   };
   return {
     USD: read(find(/^usd$/i, /^(amerikan dolar|abd dolar)/i), 'USD'),
