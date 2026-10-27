@@ -20,7 +20,8 @@ try {
     Where-Object { $_.Name -ne 'config.json' -and $_.Name -ne 'guncelle.bat' } |
     ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $Target -Recurse -Force }
   Write-Host ''
-  Write-Host 'Guncelleme tamam. start.bat penceresini kapatip yeniden calistirin.'
+  Write-Host 'Guncelleme tamam. Arka plan hizmetini kullaniyorsaniz servis.bat > 2 (Yeniden baslat) secin;'
+  Write-Host 'start.bat kullaniyorsaniz pencereyi kapatip yeniden calistirin.'
 } catch {
   Write-Host ''
   Write-Host "Guncelleme basarisiz: $($_.Exception.Message)" -ForegroundColor Red

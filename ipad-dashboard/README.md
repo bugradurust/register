@@ -15,21 +15,32 @@ Sunucu Windows PC'de çalışır, iPad ona ev ağından Safari ile bağlanır. i
 
 1. [nodejs.org](https://nodejs.org) adresinden **LTS** sürümünü kurun.
 2. Bu klasörü PC'ye kopyalayın (örneğin `C:\pano`).
-3. `start.bat` dosyasına çift tıklayın. Pencerede iPad'de açılacak adres çıkar:
+3. Sunucuyu denemek için `start.bat` dosyasına çift tıklayın. Pencerede iPad'de açılacak adres çıkar:
 
    ```
    Pano calisiyor. iPad Safari icinde su adreslerden birini ac:
       http://192.168.1.20:3000
    ```
 
-   Aynı pencerede her veri kaynağı için `✓` ya da `✗` görürsünüz (haber kaynakları, hava durumu, piyasa, maçlar, internet hızı). Bir kaynak çalışmıyorsa diğerleri etkilenmez. Pencereyi kapatmayın.
+   Aynı pencerede her veri kaynağı için `✓` ya da `✗` görürsünüz (haber kaynakları, hava durumu, piyasa, maçlar, internet hızı). Bir kaynak çalışmıyorsa diğerleri etkilenmez. Pencere açık kaldığı sürece sunucu çalışır; kalıcı kurulum için 4. adıma geçin (hizmet kurulunca bu satırlar `pano.log` dosyasına yazılır).
 4. **Bir kez**, `kurulum-yonetici.bat` dosyasına sağ tıklayıp **Yönetici olarak çalıştır** deyin. Şunları yapar:
    - Güvenlik duvarında 3000 portunu ev ağına açar (başka port kullanıyorsanız: `kurulum-yonetici.bat 8080`)
-   - Windows oturum açınca sunucuyu otomatik başlatan bir görev ekler
+   - Sunucuyu **arka plan hizmeti** olarak kurar: pencere açmaz, bilgisayar açılınca (kimse oturum açmasa da) kendiliğinden başlar, kapanırsa yeniden başlar (bkz. aşağıda "Arka planda çalıştırma")
    - Bilgisayarın uykuya geçmesini kapatır
 5. PC'nin IP'sini sabitleyin (yönlendiricinin arayüzünde **DHCP rezervasyonu**). IP değişirse iPad'deki kısayol açılmaz.
 
-PC yeniden başlayınca otomatik girişin açık olması gerekir (`Win + R` → `netplwiz`). Aksi halde oturum açılana kadar sunucu başlamaz.
+4. adımdan sonra `start.bat` penceresine gerek yoktur; açıksa kapatın (aynı anda ikisi çalışamaz). Hizmeti yönetmek için `servis.bat` kullanılır.
+
+### Arka planda çalıştırma (hizmet)
+
+`servis.bat` dosyasına çift tıklayın (Windows yönetici izni sorar, Evet deyin). Menü:
+
+1. **Kur ve başlat:** sunucuyu pencere açmadan başlatır ve bilgisayar her açıldığında kendiliğinden başlamasını sağlar. `kurulum-yonetici.bat` bunu zaten yapar; tek başına kurmak için buradan da yapılır.
+2. **Yeniden başlat:** `config.json` değiştirdikten ya da güncelleme yaptıktan sonra.
+3. **Durdur ve kaldır:** hizmeti siler.
+4. **Durum ve son kayıtlar:** hizmet çalışıyor mu ve `pano.log` dosyasının son satırları. `✓` / `✗` satırları (kaynakların durumu) artık burada ve `pano.log` içinde yazar.
+
+Hizmet Windows'un Görev Zamanlayıcısı ile çalışır (görev adı "iPad Pano", SYSTEM hesabı). Sorun çıkarsa `start.bat` ile pencereli çalıştırıp hatayı canlı görebilirsiniz (önce `servis.bat` > 3 ile hizmeti durdurun, aynı anda ikisi çalışamaz).
 
 ## 2. iPad kurulumu
 
@@ -61,9 +72,9 @@ Seçimler o iPad'in kendi hafızasında saklanır, PC'de bir dosya değiştirmen
 
 Başka bir siteyi denemek isterseniz kategori listesinde adresi değiştirin (aşağıya bakın). Kaynak bir RSS adresi ya da RSS'i olmayan bir haber sayfası olabilir. Sayfa için **`teshis.bat`** dosyasına çift tıklayın: sayfayı sizin PC'nizden açıp neyin okunabildiğini raporlar ve `teshis-raporu.txt` dosyasına yazar. Başka adres denemek için: `teshis.bat https://ornek.com/haberler`
 
-**Maçlar.** Haberlerin altında sabit kart. Pazartesi–pazar haftasının maçları gösterilir (Süper Lig, Türkiye Kupası, Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi). Maç başlamadan önce gün ve saat, oynanırken skor ve "● Oynanıyor" (dakikasıyla), bitince skor ve "Maç sonu", ertelenirse "Ertelendi" yazar. Kart, canlı maçın (yoksa sıradaki maçın) bulunduğu sayfadan başlar; çok maç varsa sayfalar dönüşümlü gösterilir. **Hafta kendiliğinden yenilenir:** pazartesi 00:00'dan sonra pano yeni haftanın maçlarına geçer. Gelecek haftanın maçlarını da görmek için `config.json` içinde `"matches": { "weeksAhead": 1 }` yazın. Veri ESPN'in herkese açık skor servisinden gelir (gün gün sorgulanır; biten günler uzun, maç günü kısa süre saklanır, maç sırasında dakikada bir yenilenir). Resmî bir hizmet olmadığından biçimi değişebilir; o zaman kart "Maç verisi alınamadı" der ve `start.bat` penceresinde `✗ Maçlar` yazar. Tarayıcıdan `http://PC-ADRESİ:3000/api/matches` açarsanız hangi ligin çalıştığını görürsünüz.
+**Maçlar.** Haberlerin altında sabit kart. Pazartesi–pazar haftasının maçları gösterilir (Süper Lig, Türkiye Kupası, Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi). Maç başlamadan önce gün ve saat, oynanırken skor ve "● Oynanıyor" (dakikasıyla), bitince skor ve "Maç sonu", ertelenirse "Ertelendi" yazar. Kart, canlı maçın (yoksa sıradaki maçın) bulunduğu sayfadan başlar; çok maç varsa sayfalar dönüşümlü gösterilir. **Hafta kendiliğinden yenilenir:** pazartesi 00:00'dan sonra pano yeni haftanın maçlarına geçer. Gelecek haftanın maçlarını da görmek için `config.json` içinde `"matches": { "weeksAhead": 1 }` yazın. Veri ESPN'in herkese açık skor servisinden gelir (gün gün sorgulanır; biten günler uzun, maç günü kısa süre saklanır, maç sırasında dakikada bir yenilenir). Resmî bir hizmet olmadığından biçimi değişebilir; o zaman kart "Maç verisi alınamadı" der ve kayıtlarda (`servis.bat` > 4) `✗ Maçlar` yazar. Tarayıcıdan `http://PC-ADRESİ:3000/api/matches` açarsanız hangi ligin çalıştığını görürsünüz.
 
-**Piyasa.** Dolar ve euro serbest piyasa fiyatı, gram altın ons altın ve dolardan hesaplanır (kuyumcu fiyatından biraz farklı olabilir). Yüzde, önceki kapanışa göre değişimdir. Kaynak olarak önce Yahoo Finance, o çalışmazsa Truncgil kullanılır; hangisinin çalıştığı `start.bat` penceresinde yazar.
+**Piyasa.** Dolar ve euro serbest piyasa fiyatı, gram altın ons altın ve dolardan hesaplanır (kuyumcu fiyatından biraz farklı olabilir). Yüzde, önceki kapanışa göre değişimdir. Kaynak olarak önce Yahoo Finance, o çalışmazsa Truncgil kullanılır; hangisinin çalıştığı kayıtlarda (`servis.bat` > 4) yazar.
 
 **İnternet hızı.** Gecikme 30 saniyede bir, indirme hızı 60 dakikada bir ölçülür (yaklaşık 8 MB indirir, ayda yaklaşık 6 GB). Rozete dokunursanız hemen ölçer. Bu, **PC'nin** internet hattının ölçümüdür, iPad de aynı modemi kullandığı için aynı hattır. Tek bağlantıyla ölçüldüğünden gerçek hızınızın biraz altında çıkabilir. Kota sorununuz varsa `config.json` içinde `"net": { "speedMinutes": 0 }` yazın (hız testi kapanır, yalnızca gecikme ölçülür).
 
@@ -79,7 +90,7 @@ Tüm varsayılanlar `config.default.json` içindedir, onu değiştirmeyin (günc
 }
 ```
 
-Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
+Değişiklikten sonra hizmeti yeniden başlatın (`servis.bat` > 2); `start.bat` kullanıyorsanız pencereyi kapatıp yeniden açın.
 
 | Alan | Anlamı |
 | --- | --- |
@@ -115,12 +126,12 @@ Değişiklikten sonra `start.bat` penceresini kapatıp yeniden açın.
 
 ## 6. Güncelleme
 
-`guncelle.bat` dosyasına çift tıklayın: son sürümü GitHub'dan indirip bu klasörün üzerine yazar. `config.json` dosyanıza dokunmaz. Sonra `start.bat` penceresini kapatıp yeniden açın, iPad'de de panoyu kapatıp yeniden açın.
+`guncelle.bat` dosyasına çift tıklayın: son sürümü GitHub'dan indirip bu klasörün üzerine yazar. `config.json` dosyanıza dokunmaz. Sonra hizmeti yeniden başlatın (`servis.bat` > 2), iPad'de de panoyu kapatıp yeniden açın.
 
 ## Sorun giderme
 
 - **iPad açılmıyor:** İkisi aynı Wi-Fi'de mi? Adresi `http://` ile ve IP'nin tamamını yazdınız mı? PC'de `http://localhost:3000` açılıyor mu? Açılıyorsa güvenlik duvarı kuralı eksiktir (`kurulum-yonetici.bat`) ya da Windows ağı "Genel" olarak işaretlidir: **Ayarlar → Ağ ve İnternet → Wi-Fi → ağınız → Özel ağ**.
-- **Alt şeritte "PC'ye ulaşılamıyor":** iPad sunucuya bağlanamıyor. PC açık mı, `start.bat` penceresi duruyor mu?
+- **Alt şeritte "PC'ye ulaşılamıyor":** iPad sunucuya bağlanamıyor. PC açık mı, hizmet çalışıyor mu (`servis.bat` > 4)?
 - **Hava durumu "alınamadı":** PC internete çıkabiliyor mu? `city` adı doğru mu? Pencerede hata yazar.
 - **Bir haber kategorisi `✗` ya da boş:** Pencerede hatanın nedeni ve adresi yazar. Son 6 saatte haber yoksa kategori gizlenir. RSS olmayan bir sayfa eklediyseniz `teshis.bat` çalıştırın.
 - **Maçlar kartı "alınamadı" diyor ya da boş:** Pencerede `✗ Maçlar` / `ℹ Maçlar` satırlarına bakın. `ℹ` kaynak çalışıyor ama bu hafta takımlarınızın maçı yok demektir.
