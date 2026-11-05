@@ -10,6 +10,7 @@ import { getWeather } from './lib/weather.js';
 import { getNews } from './lib/news.js';
 import { getMarket } from './lib/market.js';
 import { getMatches } from './lib/matches.js';
+import { getBasketball } from './lib/basketball.js';
 import { netStatus, requestSpeedTest, startNet } from './lib/net.js';
 
 const PUBLIC = path.join(ROOT, 'public');
@@ -36,6 +37,7 @@ const API = {
   '/api/news': () => getNews(),
   '/api/market': () => (config.market.enabled ? getMarket() : Promise.reject(new Error('kapali'))),
   '/api/matches': () => (config.matches.enabled ? getMatches() : Promise.reject(new Error('kapali'))),
+  '/api/basketball': () => (config.basketball.enabled ? getBasketball() : Promise.reject(new Error('kapali'))),
   '/api/net': (query) => {
     if (query.get('test') === '1') requestSpeedTest();
     return netStatus();
@@ -48,6 +50,7 @@ const API = {
     marketRefreshMinutes: config.market.refreshMinutes,
     marketEnabled: config.market.enabled,
     matchesEnabled: config.matches.enabled,
+    basketballEnabled: config.basketball.enabled,
     show: config.show,
     night: config.night
   })
@@ -113,5 +116,6 @@ server.listen(config.port, '0.0.0.0', () => {
   getNews().catch((err) => log(`✗ Haberler: ${err.message}`));
   if (config.market.enabled) getMarket().catch(() => {});
   if (config.matches.enabled) getMatches().catch((err) => log(`✗ Maçlar: ${err.message}`));
+  if (config.basketball.enabled) getBasketball().catch((err) => log(`✗ Basketbol: ${err.message}`));
   startNet();
 });

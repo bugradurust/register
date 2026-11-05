@@ -226,6 +226,7 @@ button {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+  position: relative;
 }
 .now-loc {
   font-size: 1.8rem;
@@ -292,7 +293,12 @@ button {
 }
 .day-icon {
   font-size: 3.8rem;
-  line-height: 1.25;
+  line-height: 1;
+  position: relative;
+  height: 4.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .day-max {
   font-size: 2.5rem;
@@ -514,6 +520,27 @@ button {
   padding-top: 1.2rem;
   padding-bottom: 1rem;
 }
+.tabs {
+  flex: 1;
+  display: flex;
+  gap: 0.6rem;
+}
+.tab {
+  padding: 0.25rem 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 2rem;
+  background: none;
+  color: var(--muted);
+  font-size: 1.7rem;
+  line-height: 1.15;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tab.on {
+  border-color: transparent;
+  background: var(--accent);
+  color: #0b1020;
+}
 .card-title {
   flex: 1;
   font-size: 1.8rem;
@@ -563,6 +590,194 @@ a.btn {
   align-items: center;
   justify-content: center;
   text-decoration: none;
+}
+
+/* ---- hava durumu: hareketli arka plan ve simgeler ---- */
+.fx-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.now-body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ico {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+.fx {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 4.6rem;
+  margin-left: -2.3rem;
+  pointer-events: none;
+}
+.fx i,
+.fx b {
+  position: absolute;
+  display: block;
+  will-change: transform, opacity;
+}
+/* yagmur: damlalar bulutun altindan duser */
+.fx-drizzle i,
+.fx-rain i,
+.fx-heavy i,
+.fx-thunder i {
+  top: 46%;
+  width: 0.2rem;
+  height: 1.1rem;
+  border-radius: 0.1rem;
+  background: linear-gradient(to bottom, rgba(124, 196, 255, 0), rgba(124, 196, 255, 0.95));
+  animation: fx-rain 0.9s linear infinite;
+}
+.fx-drizzle i {
+  animation-duration: 1.4s;
+}
+.fx-heavy i {
+  animation-duration: 0.6s;
+}
+.fx i:nth-child(1) { left: 20%; animation-delay: 0s; }
+.fx i:nth-child(2) { left: 32%; animation-delay: 0.27s; }
+.fx i:nth-child(3) { left: 44%; animation-delay: 0.52s; }
+.fx i:nth-child(4) { left: 56%; animation-delay: 0.13s; }
+.fx i:nth-child(5) { left: 68%; animation-delay: 0.4s; }
+.fx i:nth-child(6) { left: 80%; animation-delay: 0.65s; }
+.fx i:nth-child(7) { left: 26%; animation-delay: 0.78s; }
+.fx i:nth-child(8) { left: 62%; animation-delay: 0.35s; }
+.fx i:nth-child(9) { left: 74%; animation-delay: 0.05s; }
+@keyframes fx-rain {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate3d(-0.4rem, 2.5rem, 0); opacity: 0; }
+}
+/* kar: taneler sallanarak iner */
+.fx-snow i {
+  top: 40%;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  animation: fx-snow 3s linear infinite;
+}
+.fx-snow i:nth-child(1) { animation-delay: 0s; }
+.fx-snow i:nth-child(2) { animation-delay: 0.5s; }
+.fx-snow i:nth-child(3) { animation-delay: 1s; }
+.fx-snow i:nth-child(4) { animation-delay: 1.5s; }
+.fx-snow i:nth-child(5) { animation-delay: 2s; }
+.fx-snow i:nth-child(6) { animation-delay: 2.5s; }
+@keyframes fx-snow {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  15% { opacity: 1; }
+  35% { transform: translate3d(0.5rem, 0.9rem, 0); }
+  65% { transform: translate3d(-0.4rem, 1.9rem, 0); }
+  100% { transform: translate3d(0.3rem, 2.8rem, 0); opacity: 0; }
+}
+/* simsek */
+.fx-thunder .bolt {
+  left: 50%;
+  top: 44%;
+  margin-left: -1rem;
+  font-size: 2.2rem;
+  line-height: 1;
+  font-weight: normal;
+  opacity: 0;
+  animation: fx-bolt 3.2s linear infinite;
+}
+@keyframes fx-bolt {
+  0%, 6% { opacity: 0; transform: scale(0.8); }
+  8% { opacity: 1; transform: scale(1.15); }
+  11% { opacity: 0.15; }
+  14% { opacity: 1; transform: scale(1.1); }
+  22%, 100% { opacity: 0; transform: scale(0.9); }
+}
+/* gunes / acik: yumusak isik */
+.fx-clear::before,
+.fx-partly::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 6.4rem;
+  height: 6.4rem;
+  margin: -3.2rem 0 0 -3.2rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 205, 90, 0.55), rgba(255, 205, 90, 0) 68%);
+  animation: fx-glow 3.2s ease-in-out infinite;
+}
+@keyframes fx-glow {
+  0%, 100% { transform: scale(0.8); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+/* bulut ve sis */
+.g-cloudy .ico,
+.g-partly .ico,
+.g-fog .ico {
+  animation: fx-float 5s ease-in-out infinite;
+}
+@keyframes fx-float {
+  0%, 100% { transform: translate3d(-0.35rem, 0, 0); }
+  50% { transform: translate3d(0.35rem, -0.12rem, 0); }
+}
+.fx-fog i {
+  left: 15%;
+  width: 70%;
+  height: 0.3rem;
+  border-radius: 0.2rem;
+  background: rgba(230, 236, 245, 0.55);
+  animation: fx-fog 4s ease-in-out infinite;
+}
+.fx-fog i:nth-child(1) { top: 58%; }
+.fx-fog i:nth-child(2) { top: 72%; animation-delay: 1.3s; }
+.fx-fog i:nth-child(3) { top: 86%; animation-delay: 2.6s; }
+@keyframes fx-fog {
+  0%, 100% { transform: translate3d(-0.8rem, 0, 0); opacity: 0.25; }
+  50% { transform: translate3d(0.8rem, 0, 0); opacity: 0.65; }
+}
+/* ortadaki buyuk simge */
+.now-icon.g-clear,
+.now-icon.g-partly {
+  animation: fx-pulse 4s ease-in-out infinite;
+}
+.now-icon.g-cloudy,
+.now-icon.g-fog {
+  animation: fx-float 6s ease-in-out infinite;
+}
+.now-icon.g-drizzle,
+.now-icon.g-rain,
+.now-icon.g-heavy,
+.now-icon.g-snow,
+.now-icon.g-thunder {
+  animation: fx-bob 3.2s ease-in-out infinite;
+}
+@keyframes fx-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+@keyframes fx-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, 0.35rem, 0); }
+}
+/* animasyonlar ayar panelinden ya da iPad'in "Hareketi azalt" ayariyla kapatilinca */
+body.no-anim .fx,
+body.no-anim .fx-canvas {
+  display: none;
+}
+body.no-anim .ico,
+body.no-anim .now-icon {
+  animation: none !important;
 }
 
 /* ---- kose dugmeleri ---- */

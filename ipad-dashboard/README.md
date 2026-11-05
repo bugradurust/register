@@ -3,9 +3,9 @@
 iPad'i tam ekran bir masaüstü bilgi ekranı yapar:
 
 - büyük **saat** (saniye akar), tarih, gün doğumu ve batımı
-- anlık **hava durumu** ve **7 günlük tahmin**
+- anlık **hava durumu** ve **7 günlük tahmin**, **hareketli**: yağmur yağar, kar savrulur, şimşek çakar, güneş parlar, gece yıldızlar yanıp söner
 - **kategorili haberler** (Gündem, Son Dakika, Ekonomi, Spor, Dünya, Teknoloji…) tek kaynaktan, TRT Haber'den: yalnızca son 6 saatin haberleri, **habere dokununca özet penceresi**
-- haberlerin altında sabit **Maçlar** kartı: Galatasaray, Fenerbahçe, Beşiktaş'ın o haftaki maçları, oynanırken "Oynanıyor", bitince skor
+- haberlerin altında sabit **Maçlar** kartı, iki sekmeli: **Futbol** (Galatasaray, Fenerbahçe, Beşiktaş) ve **Basketbol** (Fenerbahçe Beko: Süper Lig ve EuroLeague). O haftaki maçlar, oynanırken "Oynanıyor", bitince skor
 - en altta **dolar, euro, gram altın** ve küçük bir **internet hızı** göstergesi
 - ekrandaki **⚙ ayar düğmesiyle** her bölüm ve her haber kategorisi tek tek açılıp kapanır
 
@@ -59,7 +59,7 @@ Not: iPad sürekli şarjda kalırsa pil yıllar içinde şişebilir. Prizi akıl
 
 **Sağ alttaki ⚙ düğmesi:**
 
-- **Piyasa şeridi, İnternet hızı, 7 günlük tahmin, Haberler, Maçlar:** her biri açılıp kapanır. Kapatılan bölümün yeri boş kalmaz, kalanlar ekranı doldurur.
+- **Piyasa şeridi, İnternet hızı, 7 günlük tahmin, Haberler, Maçlar, Basketbol sekmesi, Hava durumu animasyonları:** her biri açılıp kapanır. Kapatılan bölümün yeri boş kalmaz, kalanlar ekranı doldurur.
 - **Haber kategorileri:** her kategori ayrı açılıp kapanır.
 - **Gece modu:** açıksa 23:00–07:00 arasında ekran siyaha döner, yalnızca loş bir saat kalır (dokununca 30 saniye tüm pano görünür).
 - **Varsayılana dön:** her şeyi ilk haline getirir.
@@ -73,6 +73,10 @@ Seçimler o iPad'in kendi hafızasında saklanır, PC'de bir dosya değiştirmen
 Başka bir siteyi denemek isterseniz kategori listesinde adresi değiştirin (aşağıya bakın). Kaynak bir RSS adresi ya da RSS'i olmayan bir haber sayfası olabilir. Sayfa için **`teshis.bat`** dosyasına çift tıklayın: sayfayı sizin PC'nizden açıp neyin okunabildiğini raporlar ve `teshis-raporu.txt` dosyasına yazar. Başka adres denemek için: `teshis.bat https://ornek.com/haberler`
 
 **Maçlar.** Haberlerin altında sabit kart. Pazartesi–pazar haftasının maçları gösterilir (Süper Lig, Türkiye Kupası, Şampiyonlar Ligi, Avrupa Ligi, Konferans Ligi). Maç başlamadan önce gün ve saat, oynanırken skor ve "● Oynanıyor" (dakikasıyla), bitince skor ve "Maç sonu", ertelenirse "Ertelendi" yazar. Kart, canlı maçın (yoksa sıradaki maçın) bulunduğu sayfadan başlar; çok maç varsa sayfalar dönüşümlü gösterilir. **Hafta kendiliğinden yenilenir:** pazartesi 00:00'dan sonra pano yeni haftanın maçlarına geçer. Gelecek haftanın maçlarını da görmek için `config.json` içinde `"matches": { "weeksAhead": 1 }` yazın. Veri ESPN'in herkese açık skor servisinden gelir (gün gün sorgulanır; biten günler uzun, maç günü kısa süre saklanır, maç sırasında dakikada bir yenilenir). Resmî bir hizmet olmadığından biçimi değişebilir; o zaman kart "Maç verisi alınamadı" der ve kayıtlarda (`servis.bat` > 4) `✗ Maçlar` yazar. Tarayıcıdan `http://PC-ADRESİ:3000/api/matches` açarsanız hangi ligin çalıştığını görürsünüz.
+
+**Basketbol.** Maçlar kartındaki **🏀 Basketbol** sekmesine dokunun (seçiminiz hatırlanır). Yalnızca Fenerbahçe Beko'nun **Basketbol Süper Ligi** ve **EuroLeague** maçları gösterilir (kadınlar ligi, kupa ve gençler elenir). Futboldaki gibi gün, saat, canlıysa "● Oynanıyor 3. periyot" ve skor, bitince "Maç sonu". Veri önce SofaScore'un herkese açık günlük maç listesinden, olmazsa TheSportsDB'den alınır (ikincisi canlı skor vermez). İkisi de resmî bir hizmet değildir; çalışmazsa sekme "Maç verisi alınamadı" der ve kayıtlarda (`servis.bat` > 4) `✗ Basketbol` yazar. Takımı ya da ligleri `config.json` içindeki `basketball` bölümünden değiştirebilirsiniz.
+
+**Hava durumu animasyonları.** Ortadaki kartta hava durumuna göre canlı bir sahne çalışır (güneş ışıkları, gece yıldızlar ve ay, süzülen bulutlar, yağmur çizgileri ve sıçrayan damlalar, kar, şimşek çakması, sis), alttaki 7 günlük simgelerde de damlalar ve kar taneleri düşer. Eski iPad'i yormaması için saniyede 30 kare çizilir. iPad'inizde **Ayarlar → Erişilebilirlik → Hareket → Hareketi Azalt** açıksa animasyonlar kapalı başlar; ⚙ panelinden **Hava durumu animasyonları** anahtarıyla elle açılabilir (ya da isterseniz oradan kapatılır).
 
 **Piyasa.** Dolar ve euro serbest piyasa fiyatı, gram altın ons altın ve dolardan hesaplanır (kuyumcu fiyatından biraz farklı olabilir). Yüzde, önceki kapanışa göre değişimdir. Kaynak olarak önce Yahoo Finance, o çalışmazsa Truncgil kullanılır; hangisinin çalıştığı kayıtlarda (`servis.bat` > 4) yazar.
 
@@ -101,11 +105,12 @@ Değişiklikten sonra hizmeti yeniden başlatın (`servis.bat` > 2); `start.bat`
 | `newsMaxAgeHours` | Haberlerin en fazla kaç saat eski olabileceği (varsayılan 6, `0` = sınırsız) |
 | `pageSeconds` | Haber ve maç sayfasının değişme süresi |
 | `newsPerSource`, `itemsPerCategory` | Kaynak başına ve kategori başına haber sayısı |
-| `show` | Yeni bir iPad'in ilk açılışta hangi bölümleri göstereceği (`market`, `net`, `forecast`, `news`, `matches`) |
+| `show` | Yeni bir iPad'in ilk açılışta hangi bölümleri göstereceği (`market`, `net`, `forecast`, `news`, `matches`, `basketball`, `anim`) |
 | `night` | Gece modu (varsayılan kapalı): `enabled`, `from`, `to` (saat) |
 | `market` | `items` (`USD`, `EUR`, `GOLD`), `refreshMinutes`, `providers`, kapatmak için `"enabled": false` |
 | `net` | `pingSeconds`, `speedMinutes`, `speedBytes`, kapatmak için `"enabled": false` |
 | `matches` | `teams` (takip edilen takımlar), `weeksAhead`, `leagues`, `liveRefreshMinutes`, `idleRefreshMinutes`, kapatmak için `"enabled": false` |
+| `basketball` | `team` (takip edilen takım), `competitions` (hangi ligler), `exclude` (elenecek adlar), `providers`, kapatmak için `"enabled": false` |
 | `newsBundles` | Haber kategorileri ve kaynakları (aşağıya bakın) |
 
 **Kategori eklemek ya da değiştirmek:** `newsBundles` bir liste, kendi listeniz varsayılanın yerine geçer. Her kategori bir ad ve kaynak adresleri alır; `"enabled": false` kategoriyi varsayılan olarak kapalı başlatır (ayar panelinden açılır). Kaynak adresi bir **haber sayfası** ya da bir **RSS adresi** olabilir, sunucu hangisi olduğunu kendisi anlar. Bir kategoriye birden çok kaynak eklerseniz haberler birleştirilir:
@@ -135,6 +140,8 @@ Değişiklikten sonra hizmeti yeniden başlatın (`servis.bat` > 2); `start.bat`
 - **Hava durumu "alınamadı":** PC internete çıkabiliyor mu? `city` adı doğru mu? Pencerede hata yazar.
 - **Bir haber kategorisi `✗` ya da boş:** Pencerede hatanın nedeni ve adresi yazar. Son 6 saatte haber yoksa kategori gizlenir. RSS olmayan bir sayfa eklediyseniz `teshis.bat` çalıştırın.
 - **Maçlar kartı "alınamadı" diyor ya da boş:** Pencerede `✗ Maçlar` / `ℹ Maçlar` satırlarına bakın. `ℹ` kaynak çalışıyor ama bu hafta takımlarınızın maçı yok demektir.
+- **Basketbol sekmesi "alınamadı" diyor ya da boş:** Kayıtlarda `✗ Basketbol` satırına bakın; hangi kaynağın neden cevap vermediği yazar. `ℹ Basketbol` kaynak çalışıyor ama bu hafta Fenerbahçe'nin lig/EuroLeague maçı yok demektir.
+- **Hava durumunda hareket yok:** iPad'in "Hareketi Azalt" ayarı açık olabilir; ⚙ panelinden **Hava durumu animasyonları** anahtarını açın.
 - **Piyasa şeridi görünmüyor:** Pencerede `✗ Piyasa` satırına bakın: iki kaynak da cevap vermiyor demektir.
 - **`config.json hatalı`:** Virgül, tırnak ya da süslü parantez hatası. Dosyayı JSON olarak kontrol edin.
 - **Port kullanımda:** `config.json`'da `port` değerini değiştirin ve `kurulum-yonetici.bat <port>` çalıştırın.
@@ -152,4 +159,4 @@ Sunucuyu yönlendiricide dışarıya açmayın (port yönlendirme yapmayın). Ya
 
 `server.js` hava durumu, haber, piyasa, maç ve internet verilerini kendisi çeker, önbelleğe alır (`/api/weather`, `/api/news`, `/api/market`, `/api/matches`, `/api/net`) ve `public/` klasörünü sunar. Siteleri sunucu çektiği için iPad'in eski Safari'sinin sertifika ve CORS sorunlarıyla uğraşması gerekmez. Bir kaynak başarısız olursa 1 dakika sonra tekrar denenir; o arada son başarılı veri gösterilir ve haber kartındaki nokta sarı olur. iPad uygulamaya geri dönünce sayfa kendini yeniler, her gün 04:00'te de yenilenir.
 
-Hava durumu verisi: [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Maç verisi: ESPN. Haberler: TRT Haber RSS akışları.
+Hava durumu verisi: [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Maç verisi: ESPN (futbol), SofaScore ve TheSportsDB (basketbol). Haberler: TRT Haber RSS akışları.

@@ -15,15 +15,15 @@ const DEAD_MS = 6 * 3600000; // 400/404 veren lig bu sure atlanir (yanlis kod ya
 const BASE = 'https://site.api.espn.com/apis/site/v2/sports/soccer';
 
 // "Fenerbahçe", "Fenerbahce", "BEŞİKTAŞ" hepsi ayni anahtara iner.
-const norm = (s) =>
+export const norm = (s) =>
   String(s ?? '')
     .replace(/ı/g, 'i')
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase();
 
-const ymd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+export const ymd = (d) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+export const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 
 const mondayOf = (d) => {
   const monday = addDays(d, -((d.getDay() + 6) % 7));
@@ -32,7 +32,7 @@ const mondayOf = (d) => {
 };
 
 // Bu haftanin pazartesi 00:00'i ile (weeksAhead kadar sonraki hafta dahil) bitisi, PC'nin yerel saatiyle.
-function weekRange() {
+export function weekRange() {
   const monday = mondayOf(new Date());
   return { from: monday, to: addDays(monday, 7 * (1 + (config.matches.weeksAhead || 0))) };
 }
@@ -89,7 +89,7 @@ const dead = new Map(); // lig kodu -> atlama baslangici
 const leagueStatus = new Map(); // lig kodu -> 'ok' | hata iletisi
 
 // Bir gunluk sonucun ne kadar sure taze sayilacagi.
-function ttlFor(entry, day) {
+export function ttlFor(entry, day) {
   const { liveRefreshMinutes, idleRefreshMinutes } = config.matches;
   const live = liveRefreshMinutes * 60000;
   const idle = idleRefreshMinutes * 60000;
@@ -101,7 +101,7 @@ function ttlFor(entry, day) {
   return addDays(day, 1).getTime() <= now ? 6 * 3600000 : idle; // gecmis gun degismez
 }
 
-async function pool(items, limit, fn) {
+export async function pool(items, limit, fn) {
   const out = [];
   let i = 0;
   await Promise.all(
@@ -143,7 +143,7 @@ async function loadDay({ league, day, key }, teams) {
 }
 
 // Mac varsa ve baslamaya yakinsa sik, yoksa seyrek yenile. Eksik gun varsa 2 dakika sonra tekrar dene.
-function refreshMs(value) {
+export function refreshMs(value) {
   const { liveRefreshMinutes, idleRefreshMinutes } = config.matches;
   const now = Date.now();
   const live = value.matches.some((m) => m.state === 'in' || (m.state === 'pre' && m.ts <= now && now - m.ts < 3 * 3600000));

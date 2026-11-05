@@ -15,7 +15,7 @@
     newsMaxAgeHours: 6,
     marketEnabled: true,
     matchesEnabled: true,
-    show: { market: true, net: true, forecast: true, news: true, matches: true },
+    show: { market: true, net: true, forecast: true, news: true, matches: true, basketball: true, anim: true },
     night: { enabled: false, from: 23, to: 7 }
   };
 
@@ -68,6 +68,17 @@
   function featureOn(name) {
     if (prefs[name] != null) return !!prefs[name];
     return !server.show || server.show[name] !== false;
+  }
+  // Hava animasyonlari: ayar panelinden elle secilebilir; secilmediyse iPad "Hareketi azalt" aciksa kapali baslar.
+  var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function animOn() {
+    if (prefs.anim != null) return !!prefs.anim;
+    return (!server.show || server.show.anim !== false) && !reduceMotion;
+  }
+  function applyAnim() {
+    var on = animOn();
+    document.body.classList.toggle('no-anim', !on);
+    if (window.Fx) window.Fx.enable(on);
   }
   function nightEnabled() {
     return prefs.night != null ? !!prefs.night : !!(server.night && server.night.enabled);
@@ -149,14 +160,42 @@
     return s;
   }
 
+  // Hava kodunu animasyon grubuna cevirir.
+  function wxGroup(code) {
+    if (code === 0 || code === 1) return 'clear';
+    if (code === 2) return 'partly';
+    if (code === 3) return 'cloudy';
+    if (code === 45 || code === 48) return 'fog';
+    if (code >= 51 && code <= 57) return 'drizzle';
+    if (code === 65 || code === 67 || code === 82) return 'heavy';
+    if (code === 61 || code === 63 || code === 66 || code === 80 || code === 81) return 'rain';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+    if (code >= 95) return 'thunder';
+    return 'cloudy';
+  }
+
+  // 7 gunluk seritteki simge: emoji + altina CSS ile hareket eden damlalar/kar/isik.
+  var FX_COUNT = { drizzle: 4, rain: 6, heavy: 9, thunder: 6, snow: 6, fog: 3 };
+  function iconBox(code, isDay) {
+    var group = wxGroup(code);
+    var box = el('div', 'day-icon g-' + group);
+    box.appendChild(el('span', 'ico', wmo(code, isDay).icon));
+    var fx = el('span', 'fx fx-' + group);
+    for (var i = 0; i < (FX_COUNT[group] || 0); i++) fx.appendChild(document.createElement('i'));
+    if (group === 'thunder') fx.appendChild(el('b', 'bolt', '⚡'));
+    box.appendChild(fx);
+    return box;
+  }
+
   function renderWeather(w) {
     var c = w.current;
     var info = wmo(c.code, c.isDay);
-    var now = $('now');
+    var group = wxGroup(c.code);
+    var now = $('nowBody');
     now.textContent = '';
     now.appendChild(el('div', 'now-loc', w.location));
     var main = el('div', 'now-main');
-    main.appendChild(el('div', 'now-icon', info.icon));
+    main.appendChild(el('div', 'now-icon g-' + group, info.icon));
     main.appendChild(el('div', 'now-temp', c.temp + '°'));
     now.appendChild(main);
     now.appendChild(el('div', 'now-desc', info.text));
@@ -165,6 +204,7 @@
     stats.appendChild(stat(' Nem', '%' + c.humidity));
     stats.appendChild(stat(' Rüzgar', c.wind + ' km/s'));
     now.appendChild(stats);
+    if (window.Fx) window.Fx.set(group, c.isDay);
 
     $('sun').textContent = '🌅 ' + w.sunrise + '   🌇 ' + w.sunset;
 
@@ -175,7 +215,7 @@
       var name = i === 0 ? 'Bugün' : i === 1 ? 'Yarın' : shortDayFmt.format(new Date(+p[0], +p[1] - 1, +p[2]));
       var day = el('div', i === 0 ? 'day today' : 'day');
       day.appendChild(el('div', 'day-name', name));
-      day.appendChild(el('div', 'day-icon', wmo(d.code).icon));
+      day.appendChild(iconBox(d.code, true));
       day.appendChild(el('div', 'day-max', d.max + '°'));
       day.appendChild(el('div', 'day-min', d.min + '°'));
       day.appendChild(el('div', 'day-rain', d.rain != null ? '💧 %' + d.rain : ''));
@@ -193,8 +233,8 @@
       })
       .catch(function () {
         if (!weatherOk) {
-          $('now').textContent = '';
-          $('now').appendChild(el('div', 'placeholder', 'Hava durumu alınamadı, tekrar denenecek…'));
+          $('nowBody').textContent = '';
+          $('nowBody').appendChild(el('div', 'placeholder', 'Hava durumu alınamadı, tekrar denenecek…'));
         }
         setTimeout(loadWeather, 60000);
       });
@@ -474,9 +514,13 @@
   }
 
   // ---- maclar: haberlerin altinda sabit kart -------------------------------------
+  var sport = prefs.sport === 'basketball' ? 'basketball' : 'football';
   var matchData = null;
   var matchError = false;
   var matchSig = '';
+  var hoopData = null;
+  var hoopError = false;
+  var hoopSig = '';
   var matchPage = 0;
   var matchFocus = null; // yeni veri gelince canli (yoksa siradaki) macin sirasi: sayfa ona gore secilir
   var matchTimer = null;
@@ -523,22 +567,47 @@
   function matchesVisible() {
     return featureOn('matches') && server.matchesEnabled !== false;
   }
+  function hoopVisible() {
+    return featureOn('basketball') && server.basketballEnabled !== false;
+  }
+  function activeSport() {
+    return sport === 'basketball' && hoopVisible() ? 'basketball' : 'football';
+  }
+  // Etkin sekmenin verisi ve bos/hata iletisi
+  function sportView() {
+    if (activeSport() === 'basketball') {
+      return { data: hoopData, error: hoopError, empty: 'Bu hafta Fenerbahçe basketbol maçı görünmüyor' };
+    }
+    return { data: matchData, error: matchError, empty: 'Bu hafta takip edilen takımların maçı görünmüyor' };
+  }
+
+  function drawTabs() {
+    var cur = activeSport();
+    var showHoop = hoopVisible();
+    [].forEach.call($('sportTabs').querySelectorAll('.tab'), function (b) {
+      var name = b.getAttribute('data-sport');
+      b.hidden = name === 'basketball' && !showHoop;
+      b.className = name === cur ? 'tab on' : 'tab';
+    });
+  }
 
   function drawMatches() {
     if (!matchesVisible()) return;
+    drawTabs();
+    var v = sportView();
     var list = $('matchList');
     var dots = $('mdots');
     list.textContent = '';
     dots.textContent = '';
     var note = null;
-    if (!matchData) note = matchError ? 'Maç verisi alınamadı, tekrar denenecek…' : 'Maçlar yükleniyor…';
-    else if (!matchData.matches.length) note = 'Bu hafta takip edilen takımların maçı görünmüyor';
+    if (!v.data) note = v.error ? 'Maç verisi alınamadı, tekrar denenecek…' : 'Maçlar yükleniyor…';
+    else if (!v.data.matches.length) note = v.empty;
     if (note) {
       list.style.setProperty('--rows', 1);
       list.appendChild(el('div', 'placeholder small', note));
       return;
     }
-    var items = matchData.matches;
+    var items = v.data.matches;
     var size = listSize(list, 5.4, 1, 6);
     var pages = Math.max(1, Math.ceil(items.length / size));
     if (matchFocus != null) {
@@ -554,9 +623,10 @@
   }
 
   function nextMatchPage() {
-    if (!matchesVisible() || !matchData || !matchData.matches.length) return;
+    var v = sportView();
+    if (!matchesVisible() || !v.data || !v.data.matches.length) return;
     var list = $('matchList');
-    var pages = Math.ceil(matchData.matches.length / listSize(list, 5.4, 1, 6));
+    var pages = Math.ceil(v.data.matches.length / listSize(list, 5.4, 1, 6));
     if (pages <= 1) return;
     list.classList.add('fade');
     setTimeout(function () {
@@ -579,6 +649,18 @@
     return idx < 0 ? Math.max(0, items.length - 1) : idx;
   }
 
+  function setSport(name) {
+    if (name === activeSport()) return;
+    sport = name;
+    prefs.sport = name;
+    savePrefs();
+    var v = sportView();
+    matchPage = 0;
+    matchFocus = v.data ? focusIndex(v.data.matches) : null;
+    drawMatches();
+    restartTimers();
+  }
+
   function loadMatches() {
     if (server.matchesEnabled === false) return;
     getJSON('/api/matches')
@@ -588,7 +670,7 @@
         var sig = JSON.stringify(m.matches);
         if (sig !== matchSig) {
           matchSig = sig;
-          matchFocus = focusIndex(m.matches);
+          if (activeSport() === 'football') matchFocus = focusIndex(m.matches);
           drawMatches();
         }
         setTimeout(loadMatches, 60000);
@@ -597,6 +679,27 @@
         matchError = true;
         if (!matchData) drawMatches();
         setTimeout(loadMatches, 120000);
+      });
+  }
+
+  function loadBasketball() {
+    if (server.matchesEnabled === false || server.basketballEnabled === false) return;
+    getJSON('/api/basketball')
+      .then(function (m) {
+        hoopData = m;
+        hoopError = false;
+        var sig = JSON.stringify(m.matches);
+        if (sig !== hoopSig) {
+          hoopSig = sig;
+          if (activeSport() === 'basketball') matchFocus = focusIndex(m.matches);
+          drawMatches();
+        }
+        setTimeout(loadBasketball, 60000);
+      })
+      .catch(function () {
+        hoopError = true;
+        if (!hoopData) drawMatches();
+        setTimeout(loadBasketball, 120000);
       });
   }
 
@@ -670,6 +773,7 @@
     app.style.gridTemplateAreas = g.areas;
   }
   function applyAll() {
+    applyAnim();
     applyLayout();
     drawNews();
     drawMatches();
@@ -778,6 +882,12 @@
       })
     );
     card.appendChild(
+      switchRow('Hava durumu animasyonları', 'Yağmur, kar, güneş ışığı, şimşek', animOn(), function (v) {
+        prefs.anim = v;
+        changed();
+      })
+    );
+    card.appendChild(
       switchRow('Haberler', 'Kategorileri aşağıdan seçin', featureOn('news'), function (v) {
         prefs.news = v;
         changed();
@@ -790,6 +900,14 @@
           changed();
         })
       );
+      if (server.basketballEnabled !== false) {
+        card.appendChild(
+          switchRow('Basketbol sekmesi', 'Fenerbahçe: Süper Lig ve EuroLeague', featureOn('basketball'), function (v) {
+            prefs.basketball = v;
+            changed();
+          })
+        );
+      }
     }
 
     var shown = categories;
@@ -887,6 +1005,11 @@
     listObserver.observe($('matchList'));
   }
   $('chips').addEventListener('scroll', chipsFade);
+  [].forEach.call($('sportTabs').querySelectorAll('.tab'), function (b) {
+    b.addEventListener('click', function () {
+      setSport(b.getAttribute('data-sport'));
+    });
+  });
   $('story').addEventListener('click', function (e) {
     if (e.target === $('story')) closeStory();
   });
@@ -925,6 +1048,8 @@
 
   tick();
   setupFullscreen();
+  if (window.Fx) window.Fx.init($('nowFx'));
+  applyAnim();
   applyLayout();
   getJSON('/api/config')
     .then(function (s) {
@@ -934,11 +1059,13 @@
     })
     .catch(function () {})
     .then(function () {
+      applyAnim();
       applyLayout();
       loadWeather();
       loadNews();
       loadMarket();
       loadMatches();
+      loadBasketball();
       pollNet(0);
       restartTimers();
     });

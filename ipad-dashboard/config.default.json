@@ -14,7 +14,9 @@
     "net": true,
     "forecast": true,
     "news": true,
-    "matches": true
+    "matches": true,
+    "basketball": true,
+    "anim": true
   },
   "night": {
     "enabled": false,
@@ -46,6 +48,17 @@
       { "id": "uefa.europa", "name": "Avrupa Ligi" },
       { "id": "uefa.europa.conf", "name": "Konferans Ligi" }
     ]
+  },
+  "basketball": {
+    "enabled": true,
+    "team": "Fenerbahçe",
+    "teamName": "Fenerbahçe Beko",
+    "providers": ["sofascore", "thesportsdb"],
+    "competitions": [
+      { "name": "Süper Lig", "match": ["Süper Lig", "Super Lig", "Super League", "BSL"] },
+      { "name": "EuroLeague", "match": ["EuroLeague", "Euroleague"] }
+    ],
+    "exclude": ["Women", "Kadın", "Kadin", "U18", "U19", "U21", "Youth", "Genç", "Cup", "Kupa"]
   },
   "newsBundles": [
     {

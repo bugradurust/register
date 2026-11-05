@@ -30,7 +30,10 @@
         </section>
 
         <section class="card now" id="now">
-          <div class="placeholder">Hava durumu yükleniyor…</div>
+          <canvas id="nowFx" class="fx-canvas"></canvas>
+          <div class="now-body" id="nowBody">
+            <div class="placeholder">Hava durumu yükleniyor…</div>
+          </div>
         </section>
 
         <section class="card forecast" id="forecast"></section>
@@ -48,7 +51,10 @@
 
         <section class="card matches" id="matchesCard">
           <header class="news-head">
-            <span class="card-title">Maçlar · bu hafta</span>
+            <nav id="sportTabs" class="tabs">
+              <button class="tab on" type="button" data-sport="football">⚽ Futbol</button>
+              <button class="tab" type="button" data-sport="basketball">🏀 Basketbol</button>
+            </nav>
             <span id="mdots" class="dots"></span>
           </header>
           <div id="matchList" class="news-list">
@@ -71,6 +77,7 @@
     <div id="story" class="panel" hidden>
       <div id="storyCard" class="panel-card story"></div>
     </div>
+    <script src="fx.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
