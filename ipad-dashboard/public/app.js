@@ -299,14 +299,27 @@
       return !it.ts || Date.now() - it.ts <= maxAge;
     });
   }
+  // Sekmelerde acik olan her kategori gorunur (bos olsa da, nedeni yazilir); otomatik donuse yalniz haberi olanlar girer.
+  function chipCats() {
+    return categories.filter(catOn);
+  }
   function visibleCats() {
-    return categories.filter(function (c) {
-      return catOn(c) && catItems(c).length > 0;
+    return chipCats().filter(function (c) {
+      return catItems(c).length > 0;
     });
+  }
+  function catStatusText(c) {
+    if (c.status === 'error') return 'Kaynağa ulaşılamadı';
+    return 'Son ' + (server.newsMaxAgeHours || 6) + ' saatte haber yok';
+  }
+  function catSubText(c) {
+    var n = catItems(c).length;
+    if (n) return n + ' haber';
+    return c.status === 'error' ? 'kaynağa ulaşılamadı' : 'haber yok';
   }
   function newsVisible() {
     if (!featureOn('news')) return false;
-    return newsState !== 'ok' || visibleCats().length > 0;
+    return newsState !== 'ok' || chipCats().length > 0;
   }
 
   function ago(ts) {
@@ -351,7 +364,7 @@
       list.appendChild(el('div', 'placeholder', 'Haberlere ulaşılamıyor, tekrar denenecek…'));
       return;
     }
-    var cats = visibleCats();
+    var cats = chipCats();
     if (!cats.length) return; // kart applyLayout ile gizlenir
     var cur = cats.filter(function (c) {
       return c.name === activeName;
@@ -384,14 +397,18 @@
     var pages = Math.max(1, Math.ceil(items.length / size));
     page = page % pages;
     list.textContent = '';
-    list.style.setProperty('--rows', size);
-    items.slice(page * size, page * size + size).forEach(function (it) {
-      list.appendChild(newsRow(it));
-    });
-
     var dots = $('dots');
     dots.textContent = '';
-    for (var i = 0; i < Math.min(pages, 8); i++) dots.appendChild(el('i', i === page % 8 ? 'on' : ''));
+    if (!items.length) {
+      list.style.setProperty('--rows', 1);
+      list.appendChild(el('div', 'placeholder', catStatusText(cur)));
+    } else {
+      list.style.setProperty('--rows', size);
+      items.slice(page * size, page * size + size).forEach(function (it) {
+        list.appendChild(newsRow(it));
+      });
+      for (var i = 0; i < Math.min(pages, 8); i++) dots.appendChild(el('i', i === page % 8 ? 'on' : ''));
+    }
     var st = $('status');
     st.className = newsStale ? 'status stale' : 'status';
     st.textContent = newsUpdated ? pad(newsUpdated.getHours()) + ':' + pad(newsUpdated.getMinutes()) : '';
@@ -781,7 +798,7 @@
       var grid = el('div', 'cat-grid');
       shown.forEach(function (c) {
         grid.appendChild(
-          switchRow(c.name, null, catOn(c), function (v) {
+          switchRow(c.name, catSubText(c), catOn(c), function (v) {
             prefs.cats[c.name] = v;
             changed();
           })

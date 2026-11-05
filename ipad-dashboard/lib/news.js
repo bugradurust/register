@@ -36,10 +36,10 @@ async function fetchFeed(bundle, feed) {
     const items = !maxAge || undated ? all : all.filter((i) => i.ts && now - i.ts <= maxAge);
     const detail = !maxAge ? '' : undated ? ' (tarih okunamadı, süzülmedi)' : `, son ${config.newsMaxAgeHours} saatte ${items.length}`;
     note(key, 'ok', `✓ ${key}: ${all.length} haber (${via})${detail}`);
-    return items.sort((a, b) => b.ts - a.ts).slice(0, config.newsPerSource);
+    return { ok: true, items: items.sort((a, b) => b.ts - a.ts).slice(0, config.newsPerSource) };
   } catch (err) {
     note(key, err.message, `✗ ${key}: ${err.message} (${feed.url})`);
-    return [];
+    return { ok: false, items: [] };
   }
 }
 
@@ -57,17 +57,19 @@ export const getNews = cached(config.newsRefreshMinutes * 60000, async () => {
     if (bundle.type === 'matches') continue; // eski surumden kalan satir: maclar artik ayri bir kart
     const base = { name: bundle.name, enabled: bundle.enabled !== false };
     rss++;
-    const lists = await Promise.all((bundle.feeds || []).map((feed) => downloads.get(feed.url)));
+    const results = await Promise.all((bundle.feeds || []).map((feed) => downloads.get(feed.url)));
     const seen = new Set();
-    const items = lists
-      .flat()
+    const items = results
+      .flatMap((r) => r.items)
       .sort((a, b) => b.ts - a.ts)
       .filter((it) => {
         const k = it.title.toLowerCase();
         return seen.has(k) ? false : seen.add(k);
       })
       .slice(0, config.itemsPerCategory);
-    categories.push({ ...base, items });
+    // Kaynaklardan en az biri cevap verdiyse "empty" (son saatlerde haber yok), hicbiri vermediyse "error".
+    const status = items.length ? 'ok' : results.some((r) => r.ok) ? 'empty' : 'error';
+    categories.push({ ...base, status, items });
   }
   if (rss && categories.every((c) => !c.items.length)) {
     throw new Error('hicbir haber kaynagina ulasilamadi');
