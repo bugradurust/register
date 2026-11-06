@@ -43,7 +43,6 @@
     "idleRefreshMinutes": 30,
     "leagues": [
       { "id": "tur.1", "name": "Süper Lig" },
-      { "id": "tur.cup", "name": "Türkiye Kupası" },
       { "id": "uefa.champions", "name": "Şampiyonlar Ligi" },
       { "id": "uefa.europa", "name": "Avrupa Ligi" },
       { "id": "uefa.europa.conf", "name": "Konferans Ligi" }
@@ -53,12 +52,7 @@
     "enabled": true,
     "team": "Fenerbahçe",
     "teamName": "Fenerbahçe Beko",
-    "providers": ["sofascore", "thesportsdb"],
-    "competitions": [
-      { "name": "Süper Lig", "match": ["Süper Lig", "Super Lig", "Super League", "BSL"] },
-      { "name": "EuroLeague", "match": ["EuroLeague", "Euroleague"] }
-    ],
-    "exclude": ["Women", "Kadın", "Kadin", "U18", "U19", "U21", "Youth", "Genç", "Cup", "Kupa"]
+    "euroleagueTeamCode": "ULK"
   },
   "newsBundles": [
     {

@@ -902,7 +902,7 @@
       );
       if (server.basketballEnabled !== false) {
         card.appendChild(
-          switchRow('Basketbol sekmesi', 'Fenerbahçe: Süper Lig ve EuroLeague', featureOn('basketball'), function (v) {
+          switchRow('Basketbol sekmesi', 'Fenerbahçe: EuroLeague', featureOn('basketball'), function (v) {
             prefs.basketball = v;
             changed();
           })

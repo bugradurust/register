@@ -1,177 +1,79 @@
-// Fenerbahce Beko'nun (varsayilan) basketbol maclari: Basketbol Super Ligi ve EuroLeague, bu hafta.
-// Veri: SofaScore'un herkese acik gunluk mac listesi; olmazsa TheSportsDB. Anahtar gerekmez.
-// Futbolla ayni sekilde gun gun sorgulanir ve gun gun onbellege alinir.
+// Fenerbahce Beko'nun (varsayilan) basketbol maclari, bu hafta.
+// Veri: EuroLeague'in resmi, herkese acik API'si (anahtar gerekmez). Gercek yanit biciminde dogrulandi.
+// Turkiye Basketbol Super Ligi icin anahtarsiz, herkese acik bir kaynak bulunamadigindan su an yalniz EuroLeague gosterilir.
 import { config } from './config.js';
-import { BROWSER_UA, cached, fetchJson, stateLogger } from './util.js';
-import { addDays, norm, pool, refreshMs, ttlFor, weekRange, ymd } from './matches.js';
+import { cached, fetchJson, stateLogger } from './util.js';
+import { refreshMs, weekRange, ymd } from './matches.js';
 
 const note = stateLogger();
-const DOWN_MS = 10 * 60000; // tamamen cevap vermeyen kaynak bu sure atlanir
-const isoDay = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const API = 'https://api-live.euroleague.net/v2/competitions/E/seasons';
+const LIVE_WINDOW_MS = 3 * 3600000; // baslamis ama "played" olmamis mac bu sure canli sayilir
 
-// Turnuva adi istenen ligle eslesirse gosterilecek lig adini, yoksa null dondurur.
-function competitionOf(name) {
-  const cfg = config.basketball;
-  const n = norm(name);
-  if (!n || cfg.exclude.some((x) => n.includes(norm(x)))) return null;
-  const hit = cfg.competitions.find((c) => c.match.some((m) => n.includes(norm(m))));
-  return hit ? hit.name : null;
-}
+// EuroLeague sezonu Temmuz'da baslar: Kasim 2026 -> E2026, Mart 2027 -> yine E2026.
+const seasonCode = (d) => `E${d.getMonth() >= 6 ? d.getFullYear() : d.getFullYear() - 1}`;
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : null);
 
-const isTeam = (name) => norm(name).includes(norm(config.basketball.team));
+function parseGame(g) {
+  const ts = Date.parse(g.utcDate);
+  const home = g.local?.club;
+  const away = g.road?.club;
+  if (!Number.isFinite(ts) || !home || !away) return null;
+  const code = config.basketball.euroleagueTeamCode;
+  const homeMine = home.code === code;
+  const awayMine = away.code === code;
+  if (!homeMine && !awayMine) return null;
 
-function periodText(desc) {
-  const d = String(desc || '');
-  const q = /(\d)(?:st|nd|rd|th)?\s*(?:quarter|period)|\bq(\d)\b/i.exec(d);
-  if (/half/i.test(d)) return 'Devre arası';
-  if (/overtime|\bot\b/i.test(d)) return 'Uzatma';
-  if (q) return `${q[1] || q[2]}. periyot`;
-  return '';
-}
-
-function build(id, ts, league, home, away, state, minute, noteText, hs, as) {
-  const mineHome = isTeam(home);
-  const mineAway = isTeam(away);
-  if (!mineHome && !mineAway) return null;
+  let state = g.played ? 'post' : 'pre';
+  let noteText = '';
+  const status = String(g.gameStatus || '');
+  if (!g.played && /postpone|cancel|suspend/i.test(status)) {
+    state = 'off';
+    noteText = /postpone/i.test(status) ? 'Ertelendi' : 'İptal / durduruldu';
+  } else if (!g.played && Date.now() >= ts && Date.now() - ts < LIVE_WINDOW_MS) {
+    state = 'in'; // API canli durum vermez; baslama saatinden itibaren oynaniyor sayilir
+  }
+  let hs = num(g.local?.score);
+  let as = num(g.road?.score);
+  if (state === 'pre' || (state === 'in' && !hs && !as)) hs = as = null; // henuz skor yok
   const label = config.basketball.teamName;
   return {
-    id,
+    id: `e${g.identifier || g.id}`,
     ts,
-    league,
-    home: mineHome ? label : home,
-    away: mineAway ? label : away,
-    homeTracked: mineHome,
-    awayTracked: mineAway,
+    league: 'EuroLeague',
+    home: homeMine ? label : home.abbreviatedName || home.name,
+    away: awayMine ? label : away.abbreviatedName || away.name,
+    homeTracked: homeMine,
+    awayTracked: awayMine,
     state,
-    minute,
+    minute: '',
     note: noteText,
     homeScore: hs,
     awayScore: as
   };
 }
 
-const num = (v) => (v === undefined || v === null || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
-
-// ---- SofaScore -------------------------------------------------------------------
-const SOFA_HEADERS = { 'user-agent': BROWSER_UA, accept: 'application/json', referer: 'https://www.sofascore.com/', origin: 'https://www.sofascore.com' };
-
-function parseSofa(ev) {
-  const home = ev.homeTeam?.name;
-  const away = ev.awayTeam?.name;
-  if (!home || !away || !Number.isFinite(ev.startTimestamp)) return null;
-  const league = competitionOf([ev.tournament?.uniqueTournament?.name, ev.tournament?.name, ev.season?.name].filter(Boolean).join(' | '));
-  if (!league) return null;
-  const type = ev.status?.type;
-  let state = type === 'inprogress' ? 'in' : type === 'finished' ? 'post' : 'pre';
-  let noteText = '';
-  if (/cancel|postpone|suspend|abandon|interrupt/i.test(`${type} ${ev.status?.description}`)) {
-    state = 'off';
-    noteText = /postpone/i.test(`${type} ${ev.status?.description}`) ? 'Ertelendi' : 'İptal / durduruldu';
-  }
-  return build(
-    `s${ev.id}`, ev.startTimestamp * 1000, league, home, away, state,
-    state === 'in' ? periodText(ev.status?.description) : '', noteText,
-    num(ev.homeScore?.current ?? ev.homeScore?.display), num(ev.awayScore?.current ?? ev.awayScore?.display)
-  );
-}
-
-async function sofaDay(day) {
-  const d = await fetchJson(`https://api.sofascore.com/api/v1/sport/basketball/scheduled-events/${isoDay(day)}`, { headers: SOFA_HEADERS });
-  return (d.events || []).map(parseSofa).filter(Boolean);
-}
-
-// ---- TheSportsDB (yedek; canli skor vermez) ---------------------------------------
-function parseTsdb(ev) {
-  const league = competitionOf(ev.strLeague);
-  if (!league || !ev.strHomeTeam || !ev.strAwayTeam) return null;
-  const stamp = ev.strTimestamp || (ev.dateEvent && `${ev.dateEvent}T${ev.strTime || '00:00:00'}`);
-  const ts = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(stamp || '') ? stamp : `${stamp}Z`);
-  if (!Number.isFinite(ts)) return null;
-  const status = String(ev.strStatus || '');
-  const hs = num(ev.intHomeScore);
-  const as = num(ev.intAwayScore);
-  let state = 'pre';
-  let noteText = '';
-  if (/finish|^ft$|final|after/i.test(status)) state = 'post';
-  else if (/postpone|cancel|abandon/i.test(status)) {
-    state = 'off';
-    noteText = /postpone/i.test(status) ? 'Ertelendi' : 'İptal / durduruldu';
-  } else if (hs !== null && as !== null && Date.now() - ts < 3 * 3600000 && Date.now() > ts) state = 'in';
-  return build(`t${ev.idEvent}`, ts, league, ev.strHomeTeam, ev.strAwayTeam, state, '', noteText, hs, as);
-}
-
-async function tsdbDay(day) {
-  const d = await fetchJson(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${isoDay(day)}&s=Basketball`);
-  return (d.events || []).map(parseTsdb).filter(Boolean);
-}
-
-const PROVIDERS = { sofascore: sofaDay, thesportsdb: tsdbDay };
-const days = new Map(); // "sofascore:2026-11-05" -> { expires, matches }
-const downUntil = new Map(); // kaynak -> yeniden denenecegi zaman
-const lastWhy = new Map(); // kaynak -> son hata nedeni
-
 export const getBasketball = cached(refreshMs, async () => {
   const week = weekRange();
-  const now = Date.now();
-  const nDays = Math.round((week.to - week.from) / 86400000);
-  const dayList = [];
-  for (let i = -1; i <= nDays; i++) dayList.push(addDays(week.from, i));
-  const errors = []; // "kaynak: ileti" (tekrarsiz)
-  const problems = new Map(); // kaynak -> iletiler
-
-  for (const name of config.basketball.providers) {
-    const fetchDay = PROVIDERS[name];
-    if (!fetchDay) continue;
-    if ((downUntil.get(name) || 0) > now) {
-      errors.push(`${name}: ${lastWhy.get(name) || 'son denemede cevap vermedi'}`);
-      continue;
-    }
-    const jobs = [];
-    for (const day of dayList) {
-      const entry = days.get(`${name}:${isoDay(day)}`);
-      if (!entry || now >= entry.expires) jobs.push(day);
-    }
-    const results = await pool(jobs, 4, async (day) => {
-      try {
-        const matches = await fetchDay(day);
-        const entry = { matches };
-        entry.expires = Date.now() + ttlFor(entry, day);
-        days.set(`${name}:${isoDay(day)}`, entry);
-        return true;
-      } catch (err) {
-        if (!problems.has(name)) problems.set(name, new Set());
-        problems.get(name).add(err.message);
-        return false;
-      }
-    });
-    const have = dayList.filter((day) => days.has(`${name}:${isoDay(day)}`));
-    if (!have.length) {
-      downUntil.set(name, Date.now() + DOWN_MS);
-      const why = [...(problems.get(name) || ['cevap yok'])].join(', ');
-      lastWhy.set(name, why);
-      errors.push(`${name}: ${why}`);
-      note(`bb:${name}`, why, `✗ Basketbol · ${name}: ${why}`);
-      continue;
-    }
-    downUntil.delete(name);
-
-    const byId = new Map();
-    for (const day of have) {
-      for (const m of days.get(`${name}:${isoDay(day)}`).matches) {
-        if (m.ts >= week.from.getTime() && m.ts < week.to.getTime()) byId.set(m.id, m);
-      }
-    }
-    const matches = [...byId.values()].sort((a, b) => a.ts - b.ts);
-    note('bb:summary', `${name}:${matches.length}`, `${matches.length ? '✓' : 'ℹ'} Basketbol (${name}): ${matches.length} maç${matches.length ? '' : ', bu hafta Fenerbahçe maçı görünmüyor'}`);
-    const keep = new Set(dayList.map((d) => `${name}:${isoDay(d)}`));
-    for (const key of days.keys()) if (key.startsWith(`${name}:`) && !keep.has(key)) days.delete(key); // eski haftalar
-    return {
-      updated: new Date().toISOString(),
-      weekStart: ymd(week.from),
-      matches,
-      partial: results.some((r) => r === false),
-      debug: { provider: name, errors: [...problems].map(([k, v]) => `${k}: ${[...v].join(', ')}`) }
-    };
+  const code = config.basketball.euroleagueTeamCode;
+  let data;
+  try {
+    data = await fetchJson(`${API}/${seasonCode(new Date())}/games?teamCode=${encodeURIComponent(code)}`);
+  } catch (err) {
+    note('bb:err', err.message, `✗ Basketbol (EuroLeague): ${err.message}`);
+    throw new Error(`EuroLeague verisine ulasilamadi (${err.message})`);
   }
-  throw new Error(`hicbir basketbol kaynagina ulasilamadi (${errors.join('; ')})`);
+  const games = Array.isArray(data.data) ? data.data : [];
+  const matches = games
+    .map(parseGame)
+    .filter((m) => m && m.ts >= week.from.getTime() && m.ts < week.to.getTime())
+    .sort((a, b) => a.ts - b.ts);
+  const summary = `${matches.length} maç (${games.length} maç tarandı)`;
+  note('bb:summary', summary, `${matches.length ? '✓' : 'ℹ'} Basketbol (EuroLeague): ${summary}${matches.length ? '' : ', bu hafta Fenerbahçe EuroLeague maçı görünmüyor'}`);
+  return {
+    updated: new Date().toISOString(),
+    weekStart: ymd(week.from),
+    matches,
+    partial: false,
+    debug: { provider: 'euroleague', season: seasonCode(new Date()), scanned: games.length }
+  };
 });
