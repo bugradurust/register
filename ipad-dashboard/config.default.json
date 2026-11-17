@@ -15,7 +15,7 @@
     "forecast": true,
     "news": true,
     "matches": true,
-    "basketball": true,
+    "basketball": false,
     "anim": true
   },
   "night": {
@@ -49,7 +49,7 @@
     ]
   },
   "basketball": {
-    "enabled": true,
+    "enabled": false,
     "team": "Fenerbahçe",
     "teamName": "Fenerbahçe Beko",
     "euroleagueTeamCode": "ULK"
